@@ -90,14 +90,14 @@ export default function PublicNavbar() {
           </Link>
 
           <div className="flex gap-2 lg:gap-4 ml-2 lg:ml-4">
-            <Link href="/signup">
-              <button className="bg-[#6D2323] text-white px-4 lg:px-6 py-2 rounded hover:bg-[#8B3030] transition-colors font-medium text-sm lg:text-base">
-                Sign Up
-              </button>
-            </Link>
             <Link href="/login">
               <button className="border-2 border-[#6D2323] text-[#6D2323] px-4 lg:px-6 py-2 rounded hover:bg-[#6D2323] hover:text-white transition-colors font-medium text-sm lg:text-base">
                 Login
+              </button>
+            </Link>
+            <Link href="/signup">
+              <button className="bg-[#6D2323] text-white px-4 lg:px-6 py-2 rounded hover:bg-[#8B3030] transition-colors font-medium text-sm lg:text-base">
+                Sign Up
               </button>
             </Link>
           </div>
@@ -141,14 +141,14 @@ export default function PublicNavbar() {
             </Link>
 
             <div className="flex flex-col gap-3 mt-6 sm:mt-8">
-              <Link href="/signup" onClick={() => setIsMenuOpen(false)}>
-                <button className="w-full bg-[#6D2323] text-white px-6 py-3 sm:py-4 rounded hover:bg-[#8B3030] transition-colors font-medium text-base sm:text-lg">
-                  Sign Up
-                </button>
-              </Link>
               <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                 <button className="w-full border-2 border-[#6D2323] text-[#6D2323] px-6 py-3 sm:py-4 rounded hover:bg-[#6D2323] hover:text-white transition-colors font-medium text-base sm:text-lg">
                   Login
+                </button>
+              </Link>
+              <Link href="/signup" onClick={() => setIsMenuOpen(false)}>
+                <button className="w-full bg-[#6D2323] text-white px-6 py-3 sm:py-4 rounded hover:bg-[#8B3030] transition-colors font-medium text-base sm:text-lg">
+                  Sign Up
                 </button>
               </Link>
             </div>
