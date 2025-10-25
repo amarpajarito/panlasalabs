@@ -5,34 +5,34 @@ import { useRef } from "react";
 
 const recipes = [
   {
-    imageSrc: "/images/home/home-2.png",
-    title: "Adobo in Balsamic Vinegar",
+    imageSrc: "/images/home/Adobo.png",
+    title: "Adobo",
     description:
-      "A modern twist on the classic Filipino favorite. Adobong Manok with balsamic vinegar balances savory and tangy flavors in a rich, aromatic sauce.",
+      "The undisputed Filipino favorite. A savory and tangy stew made with soy sauce, vinegar, garlic, and bay leaves, Adobo is known for its rich flavor and endless variations across regions.",
   },
   {
-    imageSrc: "/images/home/home-3.png",
-    title: "Tropical Tofu Stir-Fry",
+    imageSrc: "/images/home/Sinigang.png",
+    title: "Sinigang",
     description:
-      "Bright and packed with flavor, Tropical Tofu Stir-Fry combines crispy tofu, juicy pineapple, and sweet bell peppers in a light yet satisfying vegetarian meal.",
+      "A comforting sour soup usually made with pork, shrimp, or fish, flavored with tamarind and fresh vegetables. Its perfect balance of sourness and warmth makes it a household staple.",
   },
   {
-    imageSrc: "/images/home/home-4.png",
-    title: "Garlic Butter Shrimp Pasta",
+    imageSrc: "/images/home/Sisig.png",
+    title: "Sisig",
     description:
-      "Garlic Butter Shrimp Pasta brings together the richness of Italian cuisine with a Filipino love for bold garlic flavor - Tossed in a buttery and garlicky sauce.",
+      "A sizzling Kapampangan dish made from chopped pork, onions, and calamansi, often served on a hot plate. Known for its crunchy, flavorful texture, Sisig is a crowd-pleaser at any gathering.",
   },
   {
-    imageSrc: "/images/home/home-2.png",
-    title: "Sinigang na Baboy",
-    description:
-      "A tangy and savory Filipino soup with tender pork, fresh vegetables, and tamarind broth. Perfect comfort food for any day.",
-  },
-  {
-    imageSrc: "/images/home/home-3.png",
+    imageSrc: "/images/home/Kare-Kare.png",
     title: "Kare-Kare",
     description:
-      "A rich and creamy Filipino peanut stew with oxtail, vegetables, and bagoong. A celebration of Filipino flavors in every bite.",
+      "A peanut-based stew traditionally made with oxtail and vegetables, served with bagoong (shrimp paste). This rich, nutty dish is a Filipino comfort food that brings people together during celebrations.",
+  },
+  {
+    imageSrc: "/images/home/Bagnet.png",
+    title: "Bagnet",
+    description:
+      "A crispy deep-fried pork belly dish from Ilocos, Bagnet is prized for its crunchy skin and juicy meat. It’s often paired with bagoong and tomatoes, offering the perfect mix of texture and flavor that Filipinos can’t resist.",
   },
 ];
 

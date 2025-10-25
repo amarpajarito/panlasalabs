@@ -13,25 +13,27 @@ export default function MustTryRecipesSection() {
   const recipes: Recipe[] = [
     {
       id: "1",
-      title: "Ginataang Peras",
+      title: "Pancit Bihon",
       description:
-        "A creamy Filipino dessert made with pears and coconut milk.",
-      image: "/images/recipe/recipe-2.png",
+        "A classic Filipino stir-fried rice noodle dish with vegetables, chicken, and shrimp.",
+      image: "/images/recipe/pancit-bihon.png",
       difficulty: "Medium",
     },
     {
       id: "2",
-      title: "Aubergine in Egg",
-      description: "Classic Filipino tortang talong (eggplant omelette).",
-      image: "/images/recipe/recipe-3.png",
-      difficulty: "Easy",
+      title: "Chicken Inasal",
+      description:
+        "A flavorful grilled chicken marinated in a tangy, savory blend of vinegar and annatto.",
+      image: "/images/recipe/chicken-inasal.png",
+      difficulty: "Medium",
     },
     {
       id: "3",
-      title: "Grilled Mushroom",
-      description: "Savory grilled mushrooms with Filipino flavors.",
-      image: "/images/recipe/recipe-4.png",
-      difficulty: "Medium",
+      title: "Halo Halo",
+      description:
+        "A popular Filipino shaved-ice dessert layered with sweet beans, fruits, leche flan, and ube.",
+      image: "/images/recipe/halo-halo.png",
+      difficulty: "Easy",
     },
   ];
 
