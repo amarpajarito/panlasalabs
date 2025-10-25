@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/PublicNavbar";
+import NavWrapper from "@/components/layout/NavWrapper";
 import Footer from "@/components/layout/Footer";
 
 export default function PublicLayout({
@@ -8,7 +8,7 @@ export default function PublicLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <NavWrapper isAuthPage={false} />
       {children}
       <Footer />
     </>
