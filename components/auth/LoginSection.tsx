@@ -2,21 +2,30 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthFormContainer from "@/components/auth/AuthFormContainer";
 import SocialButtons from "@/components/auth/SocialButtons";
 import TextInput from "@/components/auth/TextInput";
 
 export default function LoginSection() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof typeof errors])
       setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setErrorMessage("");
   };
 
   const validateForm = () => {
@@ -29,20 +38,50 @@ export default function LoginSection() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      // TODO: implement backend login with automatic session management
-      // Session will be handled by NextAuth with secure HTTP-only cookies
-      console.log("Login data:", formData);
-      alert("Login successful! (Frontend only - backend not implemented yet)");
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setErrorMessage(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (result?.ok) {
+        router.push(callbackUrl);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
     }
   };
 
-  const handleGitHubLogin = () => {
-    // TODO: GitHub OAuth
-    console.log("GitHub login clicked");
-    alert("GitHub login will be implemented with NextAuth");
+  const handleGitHubLogin = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      await signIn("github", {
+        callbackUrl,
+      });
+    } catch (error) {
+      console.error("GitHub login error:", error);
+      setErrorMessage("GitHub login failed. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,7 +105,10 @@ export default function LoginSection() {
           subtitle="Welcome back! Please enter your details"
           topActions={
             <>
-              <SocialButtons onGitHub={handleGitHubLogin} />
+              <SocialButtons
+                onGitHub={handleGitHubLogin}
+                disabled={isLoading}
+              />
               <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-[#6D2323]/10"></div>
@@ -94,6 +136,12 @@ export default function LoginSection() {
           }
         >
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMessage && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {errorMessage}
+              </div>
+            )}
+
             <TextInput
               label="Email address"
               id="email"
@@ -131,9 +179,10 @@ export default function LoginSection() {
 
             <button
               type="submit"
-              className="w-full bg-[#6D2323] text-white px-4 py-2.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-sm mt-6"
+              disabled={isLoading}
+              className="w-full bg-[#6D2323] text-white px-4 py-2.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-sm mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </form>
         </AuthFormContainer>

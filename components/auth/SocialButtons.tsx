@@ -2,14 +2,21 @@
 
 import React from "react";
 
-export default function SocialButtons({ onGitHub }: { onGitHub?: () => void }) {
+export default function SocialButtons({
+  onGitHub,
+  disabled = false,
+}: {
+  onGitHub?: () => void;
+  disabled?: boolean;
+}) {
   return (
     <>
       {/* GitHub Button */}
       <button
         type="button"
         onClick={onGitHub}
-        className="w-full bg-[#24292F] border border-[#24292F] text-white px-4 py-3 rounded-lg hover:bg-[#1b1f24] transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-3 mb-6"
+        disabled={disabled}
+        className="w-full bg-[#24292F] border border-[#24292F] text-white px-4 py-3 rounded-lg hover:bg-[#1b1f24] transition-colors duration-200 font-medium text-sm flex items-center justify-center gap-3 mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <path
@@ -18,7 +25,7 @@ export default function SocialButtons({ onGitHub }: { onGitHub?: () => void }) {
             clipRule="evenodd"
           />
         </svg>
-        Continue with GitHub
+        {disabled ? "Loading..." : "Continue with GitHub"}
       </button>
     </>
   );

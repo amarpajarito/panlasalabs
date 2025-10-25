@@ -1,17 +1,42 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 export default function FeedbackSection() {
+  const { data: session } = useSession();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const isLoggedIn = false;
+  const isLoggedIn = !!session;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Feedback submitted:", { rating, feedback });
+    setIsSubmitting(true);
+
+    try {
+      // TODO: Implement actual API call to save feedback
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      console.log("Feedback submitted:", {
+        rating,
+        feedback,
+        user: session?.user,
+      });
+
+      setSuccessMessage("Thank you for your feedback!");
+      setRating(0);
+      setFeedback("");
+
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -100,6 +125,12 @@ export default function FeedbackSection() {
             ) : (
               // Show feedback form if user is logged in
               <form onSubmit={handleSubmit} className="space-y-8">
+                {successMessage && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                    {successMessage}
+                  </div>
+                )}
+
                 {/* Rating Section */}
                 <div>
                   <label className="block text-[#1a1a1a] font-semibold text-lg mb-4 text-center">
@@ -171,10 +202,10 @@ export default function FeedbackSection() {
 
                 <button
                   type="submit"
-                  disabled={rating === 0}
+                  disabled={rating === 0 || isSubmitting}
                   className="w-full bg-[#6D2323] text-white px-8 py-3.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Submit Feedback
+                  {isSubmitting ? "Submitting..." : "Submit Feedback"}
                 </button>
               </form>
             )}

@@ -2,30 +2,36 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import AuthFormContainer from "@/components/auth/AuthFormContainer";
 import SocialButtons from "@/components/auth/SocialButtons";
 import TextInput from "@/components/auth/TextInput";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignupSection() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{
     firstName?: string;
     lastName?: string;
     email?: string;
     password?: string;
   }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof typeof errors])
       setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setErrorMessage("");
   };
 
   const validateForm = () => {
@@ -47,19 +53,105 @@ export default function SignupSection() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      // TODO: implement backend signup
-      console.log("Signup data:", formData);
-      alert("Signup successful! (Frontend only - backend not implemented yet)");
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const supabase = createClient();
+
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+          },
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // Create user record via server endpoint (uses service role key).
+        try {
+          const res = await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              // id may not be a UUID for some providers; server will only
+              // use it if it's a valid UUID.
+              id: data.user.id,
+              email: formData.email,
+              name: `${formData.firstName} ${formData.lastName}`,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              provider: "email",
+            }),
+          });
+
+          const json = await res.json();
+          if (!res.ok) {
+            console.error("Database error:", json);
+          }
+        } catch (err) {
+          console.error("Database error:", err);
+        }
+
+        // Auto sign in after successful signup
+        const result = await signIn("credentials", {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        });
+
+        console.log("Credentials signIn result:", result);
+
+        if (result?.ok) {
+          router.push("/");
+          router.refresh();
+        } else {
+          // Show a helpful message when sign-in fails (e.g., email not
+          // confirmed or invalid credentials)
+          setErrorMessage(
+            (result as any)?.error ||
+              "Sign in failed. Please check your email and password."
+          );
+          setIsLoading(false);
+        }
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      setErrorMessage(
+        error.message || "An unexpected error occurred. Please try again."
+      );
+      setIsLoading(false);
     }
   };
 
-  const handleGitHubSignup = () => {
-    // TODO: GitHub OAuth
-    console.log("GitHub signup clicked");
-    alert("GitHub signup will be implemented with NextAuth");
+  const handleGitHubSignup = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      await signIn("github", {
+        callbackUrl: "/",
+      });
+    } catch (error) {
+      console.error("GitHub signup error:", error);
+      setErrorMessage("GitHub signup failed. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,7 +175,10 @@ export default function SignupSection() {
           subtitle="Get started with PanlasaLabs today"
           topActions={
             <>
-              <SocialButtons onGitHub={handleGitHubSignup} />
+              <SocialButtons
+                onGitHub={handleGitHubSignup}
+                disabled={isLoading}
+              />
               <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-[#6D2323]/10"></div>
@@ -111,6 +206,12 @@ export default function SignupSection() {
           }
         >
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMessage && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {errorMessage}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <TextInput
                 label="First name"
@@ -155,9 +256,10 @@ export default function SignupSection() {
 
             <button
               type="submit"
-              className="w-full bg-[#6D2323] text-white px-4 py-2.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-sm mt-2"
+              disabled={isLoading}
+              className="w-full bg-[#6D2323] text-white px-4 py-2.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create account
+              {isLoading ? "Creating account..." : "Create account"}
             </button>
           </form>
         </AuthFormContainer>
