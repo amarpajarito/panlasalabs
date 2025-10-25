@@ -46,17 +46,49 @@ export default function AIRecipeChat() {
     setInput("");
     setIsLoading(true);
 
-    // TODO: Replace with actual AI API call when backend is ready
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: input }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        console.error("AI generate error:", json);
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content:
+            "Sorry, I couldn't generate a recipe just now. Please try again.",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+        setIsLoading(false);
+        return;
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: `Great! Based on "${input}", I'll create a delicious recipe for you. Here's what I suggest:\n\n**Filipino Chicken Adobo**\n\n**Ingredients:**\n• 1 kg chicken pieces\n• 1/2 cup soy sauce\n• 1/4 cup vinegar\n• 6 cloves garlic, minced\n• 1 bay leaf\n• 1 tsp black peppercorns\n\n**Instructions:**\n1. Marinate chicken in soy sauce and vinegar for 30 minutes\n2. Sauté garlic until golden\n3. Add chicken and marinade\n4. Add bay leaf and peppercorns\n5. Simmer for 30-40 minutes until tender\n\n**Cooking Time:** 1 hour\n**Serves:** 4-6 people\n\nWould you like me to adjust this recipe or create something else?`,
+        content: json.text,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      console.error("Error calling AI API:", err);
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, something went wrong while generating the recipe.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const quickPrompts = [
