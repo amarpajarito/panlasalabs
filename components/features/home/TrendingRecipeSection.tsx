@@ -1,24 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import RecipeCard from "./RecipeCard";
 import { useRef } from "react";
 
 const recipes = [
   {
     imageSrc: "/images/home/Adobo.png",
-    title: "Adobo",
+    title: "Chicken Adobo",
     description:
       "The undisputed Filipino favorite. A savory and tangy stew made with soy sauce, vinegar, garlic, and bay leaves, Adobo is known for its rich flavor and endless variations across regions.",
   },
   {
     imageSrc: "/images/home/Sinigang.png",
-    title: "Sinigang",
+    title: "Sinigang na Hipon",
     description:
       "A comforting sour soup usually made with pork, shrimp, or fish, flavored with tamarind and fresh vegetables. Its perfect balance of sourness and warmth makes it a household staple.",
   },
   {
     imageSrc: "/images/home/Sisig.png",
-    title: "Sisig",
+    title: "Sizzling Pork Sisig",
     description:
       "A sizzling Kapampangan dish made from chopped pork, onions, and calamansi, often served on a hot plate. Known for its crunchy, flavorful texture, Sisig is a crowd-pleaser at any gathering.",
   },
@@ -132,8 +133,10 @@ export default function TrendingRecipesSection() {
             }}
           >
             {recipes.map((recipe, index) => (
-              <div
+              <Link
                 key={index}
+                href="/allrecipes"
+                aria-label={`Open ${recipe.title} in All Recipes`}
                 className="flex-shrink-0 w-[280px] sm:w-[320px] lg:w-[calc((100%-48px)/3)] snap-start"
               >
                 <RecipeCard
@@ -141,7 +144,7 @@ export default function TrendingRecipesSection() {
                   title={recipe.title}
                   description={recipe.description}
                 />
-              </div>
+              </Link>
             ))}
           </div>
 
