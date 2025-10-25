@@ -6,31 +6,31 @@ import { useRef } from "react";
 
 const recipes = [
   {
-    imageSrc: "/images/home/Adobo.png",
+    imageSrc: "/images/recipe/Adobo.png",
     title: "Chicken Adobo",
     description:
       "The undisputed Filipino favorite. A savory and tangy stew made with soy sauce, vinegar, garlic, and bay leaves, Adobo is known for its rich flavor and endless variations across regions.",
   },
   {
-    imageSrc: "/images/home/Sinigang.png",
+    imageSrc: "/images/recipe/Sinigang.png",
     title: "Sinigang na Hipon",
     description:
       "A comforting sour soup usually made with pork, shrimp, or fish, flavored with tamarind and fresh vegetables. Its perfect balance of sourness and warmth makes it a household staple.",
   },
   {
-    imageSrc: "/images/home/Sisig.png",
+    imageSrc: "/images/recipe/Sisig.png",
     title: "Sizzling Pork Sisig",
     description:
       "A sizzling Kapampangan dish made from chopped pork, onions, and calamansi, often served on a hot plate. Known for its crunchy, flavorful texture, Sisig is a crowd-pleaser at any gathering.",
   },
   {
-    imageSrc: "/images/home/Kare-Kare.png",
+    imageSrc: "/images/recipe/Kare-Kare.png",
     title: "Kare-Kare",
     description:
       "A peanut-based stew traditionally made with oxtail and vegetables, served with bagoong (shrimp paste). This rich, nutty dish is a Filipino comfort food that brings people together during celebrations.",
   },
   {
-    imageSrc: "/images/home/Bagnet.png",
+    imageSrc: "/images/recipe/Bagnet.png",
     title: "Bagnet",
     description:
       "A crispy deep-fried pork belly dish from Ilocos, Bagnet is prized for its crunchy skin and juicy meat. It’s often paired with bagoong and tomatoes, offering the perfect mix of texture and flavor that Filipinos can’t resist.",
