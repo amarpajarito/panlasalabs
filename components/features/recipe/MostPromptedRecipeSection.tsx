@@ -48,12 +48,14 @@ export default function MostPromptedRecipeSection({
   };
 
   const displayRecipe = recipe || defaultRecipe;
-  // UI state: which tab is active and whether instructions are expanded
   const [activeTab, setActiveTab] = useState<"ingredients" | "instructions">(
     "ingredients"
   );
-  const [ingredientsOpen, setIngredientsOpen] = useState(false);
-  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
+  const [showAllInstructions, setShowAllInstructions] = useState(false);
+
+  const PREVIEW_INGREDIENTS = 5;
+  const PREVIEW_INSTRUCTIONS = 3;
 
   return (
     <section className="w-full py-16 md:py-20 bg-white">
@@ -73,25 +75,22 @@ export default function MostPromptedRecipeSection({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Recipe Image */}
           <div className="relative">
-            <div className="aspect-square rounded-2xl overflow-hidden bg-[#FEF9E1]">
+            <div className="aspect-square rounded-2xl overflow-hidden bg-[#FEF9E1] shadow-lg">
               <img
                 src={displayRecipe.image}
                 alt={displayRecipe.title}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  // Fallback to placeholder if image fails to load
                   e.currentTarget.src =
                     "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=800&h=800&fit=crop";
                 }}
               />
             </div>
-
-            {/* Decorative Element */}
             <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-[#FEF9E1] rounded-2xl -z-10 hidden md:block"></div>
           </div>
 
           {/* Recipe Details */}
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col">
             <h3 className="text-[#1a1a1a] font-bold text-2xl md:text-3xl lg:text-4xl mb-4">
               {displayRecipe.title}
             </h3>
@@ -100,137 +99,190 @@ export default function MostPromptedRecipeSection({
               {displayRecipe.description}
             </p>
 
-            {/* Compact Tabs for Ingredients / Instructions */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-4">
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200 mb-6">
+              <div className="flex gap-8">
                 <button
                   type="button"
                   onClick={() => setActiveTab("ingredients")}
-                  className={`px-3 py-1 rounded-md font-semibold text-sm ${
+                  className={`pb-3 font-semibold text-base transition-all relative ${
                     activeTab === "ingredients"
-                      ? "bg-[#6D2323] text-white"
-                      : "bg-gray-100 text-[#6D2323]"
+                      ? "text-[#6D2323]"
+                      : "text-gray-500 hover:text-[#6D2323]"
                   }`}
                 >
                   Ingredients
+                  {activeTab === "ingredients" && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6D2323]"></span>
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("instructions")}
-                  className={`px-3 py-1 rounded-md font-semibold text-sm ${
+                  className={`pb-3 font-semibold text-base transition-all relative ${
                     activeTab === "instructions"
-                      ? "bg-[#6D2323] text-white"
-                      : "bg-gray-100 text-[#6D2323]"
+                      ? "text-[#6D2323]"
+                      : "text-gray-500 hover:text-[#6D2323]"
                   }`}
                 >
                   Instructions
+                  {activeTab === "instructions" && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#6D2323]"></span>
+                  )}
                 </button>
-              </div>
-
-              <div>
-                {activeTab === "ingredients" &&
-                  (() => {
-                    const items = displayRecipe.ingredients || [];
-                    const previewCount = 5;
-
-                    if (items.length === 0) {
-                      return (
-                        <p className="text-[#454545]">
-                          No ingredients provided.
-                        </p>
-                      );
-                    }
-
-                    return (
-                      <div>
-                        <ul className="space-y-2">
-                          {(ingredientsOpen
-                            ? items
-                            : items.slice(0, previewCount)
-                          ).map((ingredient, index) => (
-                            <li
-                              key={index}
-                              className="flex items-start gap-3 text-[#454545]"
-                            >
-                              <span className="text-[#6D2323] mt-1.5">•</span>
-                              <span className="text-sm md:text-base">
-                                {ingredient}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-
-                        {items.length > previewCount && (
-                          <div className="mt-3">
-                            <button
-                              type="button"
-                              onClick={() => setIngredientsOpen((s) => !s)}
-                              className="text-sm text-[#6D2323] font-semibold hover:underline"
-                              aria-expanded={ingredientsOpen}
-                            >
-                              {ingredientsOpen
-                                ? `Hide ingredients`
-                                : `Show all ingredients (${items.length})`}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                {activeTab === "instructions" &&
-                  (() => {
-                    const steps = displayRecipe.instructions || [];
-                    const previewCount = 2;
-
-                    if (steps.length === 0) {
-                      return (
-                        <p className="text-[#454545]">
-                          No instructions provided.
-                        </p>
-                      );
-                    }
-
-                    return (
-                      <div>
-                        <ol className="list-decimal list-inside space-y-2 text-[#454545]">
-                          {(instructionsOpen
-                            ? steps
-                            : steps.slice(0, previewCount)
-                          ).map((step, index) => (
-                            <li
-                              key={index}
-                              className="text-sm md:text-base leading-relaxed"
-                            >
-                              {step}
-                            </li>
-                          ))}
-                        </ol>
-
-                        {steps.length > previewCount && (
-                          <div className="mt-3">
-                            <button
-                              type="button"
-                              onClick={() => setInstructionsOpen((s) => !s)}
-                              className="text-sm text-[#6D2323] font-semibold hover:underline"
-                              aria-expanded={instructionsOpen}
-                            >
-                              {instructionsOpen
-                                ? "Hide instructions"
-                                : `Show full instructions (${steps.length} steps)`}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
               </div>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            {/* Tab Content */}
+            <div className="flex-1 overflow-hidden">
+              {activeTab === "ingredients" && (
+                <div className="space-y-4">
+                  <ul className="space-y-3">
+                    {displayRecipe.ingredients
+                      .slice(
+                        0,
+                        showAllIngredients
+                          ? displayRecipe.ingredients.length
+                          : PREVIEW_INGREDIENTS
+                      )
+                      .map((ingredient, index) => (
+                        <li
+                          key={index}
+                          className="flex gap-3 text-[#454545] items-baseline"
+                        >
+                          <span className="text-[#6D2323] flex-shrink-0 text-lg leading-none">
+                            •
+                          </span>
+                          <span className="text-base leading-relaxed">
+                            {ingredient}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+
+                  {displayRecipe.ingredients.length > PREVIEW_INGREDIENTS && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllIngredients(!showAllIngredients)}
+                      className="text-sm text-[#6D2323] font-semibold hover:text-[#8B3030] transition-colors flex items-center gap-1 mt-4"
+                    >
+                      {showAllIngredients ? (
+                        <>
+                          Hide ingredients
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 15l7-7 7 7"
+                            />
+                          </svg>
+                        </>
+                      ) : (
+                        <>
+                          Show all {displayRecipe.ingredients.length}{" "}
+                          ingredients
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "instructions" && (
+                <div className="space-y-4">
+                  <ol className="space-y-4">
+                    {(displayRecipe.instructions || [])
+                      .slice(
+                        0,
+                        showAllInstructions
+                          ? displayRecipe.instructions?.length
+                          : PREVIEW_INSTRUCTIONS
+                      )
+                      .map((step, index) => (
+                        <li key={index} className="flex gap-4 text-[#454545]">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#6D2323] text-white text-sm font-semibold flex items-center justify-center">
+                            {index + 1}
+                          </span>
+                          <span className="text-base leading-relaxed pt-0.5">
+                            {step}
+                          </span>
+                        </li>
+                      ))}
+                  </ol>
+
+                  {(displayRecipe.instructions?.length || 0) >
+                    PREVIEW_INSTRUCTIONS && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowAllInstructions(!showAllInstructions)
+                      }
+                      className="text-sm text-[#6D2323] font-semibold hover:text-[#8B3030] transition-colors flex items-center gap-1 mt-4"
+                    >
+                      {showAllInstructions ? (
+                        <>
+                          Hide instructions
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 15l7-7 7 7"
+                            />
+                          </svg>
+                        </>
+                      ) : (
+                        <>
+                          Show all {displayRecipe.instructions?.length} steps
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* CTA Buttons - Fixed at bottom */}
+            <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-gray-100">
               <a href="/generate" className="flex-1">
-                <button className="w-full bg-[#6D2323] text-white px-6 py-3.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-base flex items-center justify-center gap-2">
+                <button className="w-full bg-[#6D2323] text-white px-6 py-3.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-base flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
                   <svg
                     className="w-5 h-5"
                     fill="none"

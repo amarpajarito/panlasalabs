@@ -41,9 +41,11 @@ export default function AIRecipeGeneratorSection() {
               {capabilities.map((capability, index) => (
                 <li
                   key={index}
-                  className="flex items-start gap-3 text-[#454545] text-base leading-relaxed"
+                  className="flex gap-3 text-[#454545] text-base leading-relaxed"
                 >
-                  <span className="text-[#6D2323] mt-1.5">•</span>
+                  <span className="text-[#6D2323] flex-shrink-0 leading-relaxed">
+                    •
+                  </span>
                   <span>{capability}</span>
                 </li>
               ))}
