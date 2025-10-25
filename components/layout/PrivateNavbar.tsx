@@ -95,25 +95,24 @@ export default function PrivateNavbar() {
           </Link>
 
           <div className="flex items-center gap-3 ml-2 lg:ml-4 relative">
-            {/* User display */}
+            {/* User display - larger size without affecting navbar height */}
             <button
               onClick={() => setUserMenuOpen((s) => !s)}
-              className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-[#6D2323]/10 transition-all duration-200"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-[#6D2323]/10 transition-all duration-200"
               aria-haspopup="true"
             >
               {user?.image ? (
-                // Use an img tag for arbitrary external avatars to avoid Image domain config
                 <img
                   src={user.image}
                   alt={user.name ?? user.email ?? "User avatar"}
-                  className="w-9 h-9 rounded-full object-cover"
+                  className="w-9 h-9 rounded-full object-cover -my-1"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-[#6D2323] text-white flex items-center justify-center font-medium">
+                <div className="w-9 h-9 rounded-full bg-[#6D2323] text-white flex items-center justify-center font-medium -my-1">
                   {(user?.name || user?.email || "?").charAt(0).toUpperCase()}
                 </div>
               )}
-              <span className="text-sm text-[#1a1a1a] font-medium max-w-[120px] truncate">
+              <span className="text-sm lg:text-base text-[#1a1a1a] font-medium max-w-[120px] truncate">
                 {user?.name ?? user?.email ?? "User"}
               </span>
             </button>
