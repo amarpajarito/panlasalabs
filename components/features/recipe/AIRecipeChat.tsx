@@ -47,7 +47,8 @@ export default function AIRecipeChat() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/ai/generate", {
+      // Call the prompted API which will ask Gemini for structured JSON and persist to DB
+      const res = await fetch("/api/ai/prompted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: input }),
@@ -56,7 +57,7 @@ export default function AIRecipeChat() {
       const json = await res.json();
 
       if (!res.ok) {
-        console.error("AI generate error:", json);
+        console.error("AI prompted error:", json);
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -69,10 +70,30 @@ export default function AIRecipeChat() {
         return;
       }
 
+      // The backend will save the generated recipe and return an id. Do NOT
+      // include the full recipe content in the chat to avoid exposing it here.
+      const recipeId = json?.id || json?.recipeId || null;
+      const serverMessage =
+        recipeId !== null
+          ? "Your recipe has been generated and saved to your recipes."
+          : json?.message ?? "Your recipe was generated.";
+
+      // Fire an event with the recipe id only; the PromptedRecipeSection will
+      // fetch the recipe details securely via its own API call.
+      if (recipeId) {
+        try {
+          window.dispatchEvent(
+            new CustomEvent("prompted:created", { detail: { id: recipeId } })
+          );
+        } catch (e) {
+          // ignore
+        }
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: json.text,
+        content: serverMessage,
         timestamp: new Date(),
       };
 

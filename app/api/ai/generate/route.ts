@@ -13,7 +13,12 @@ const ai = new GoogleGenAI({ apiKey });
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { prompt } = body;
+    // By default we do NOT return the full generated text to the client.
+    // This endpoint accepts an optional `expose: true` flag in the body to
+    // explicitly request the raw text (useful for debugging). Otherwise we
+    // return a short acknowledgement so sensitive/generated content isn't
+    // leaked to clients unintentionally.
+    const { prompt, expose } = body;
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
@@ -41,7 +46,13 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ text });
+    // If the caller explicitly asked to expose the raw AI text, return it.
+    // Otherwise, return a short acknowledgement only.
+    if (expose === true) {
+      return NextResponse.json({ text });
+    }
+
+    return NextResponse.json({ message: "generated" });
   } catch (err: any) {
     console.error("/api/ai/generate error:", err);
     return NextResponse.json(
