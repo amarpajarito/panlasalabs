@@ -101,10 +101,13 @@ function parseRecipeFromText(text: string) {
 
   const parseIngredientLines = (txt: string) => {
     if (!txt) return [] as string[];
-    return txt
-      .split(/\n/)
-      .map((l) => l.replace(/^[-–•\d\.\)\s]+/, "").trim())
-      .filter(Boolean);
+    return (
+      txt
+        .split(/\n/)
+        // remove bullets, dashes, punctuation and stray quotes but keep numeric quantities (e.g. "1 lb")
+        .map((l) => l.replace(/^[\-–•\)\.\s"'\u201c\u201d]+/, "").trim())
+        .filter(Boolean)
+    );
   };
 
   const ingredients = parseIngredientLines(ingredientsText);
@@ -273,6 +276,30 @@ export async function POST(req: Request) {
       return str.trim();
     }
 
+    // Ingredients often include numeric quantities (e.g. "1 lb pork");
+    // use a separate sanitizer that preserves leading numbers but still
+    // strips stray quotes, bullets and markdown noise.
+    function sanitizeIngredient(s: any) {
+      if (s === null || s === undefined) return null;
+      let str = String(s).trim();
+      // remove wrapping straight or curly quotes
+      str = str.replace(/^['"\u201c\u201d]+|['"\u201c\u201d]+$/g, "");
+      // remove markdown bold/italic markers and stray asterisks
+      str = str.replace(/\*+/g, "");
+      // remove code fences and inline code markers
+      str = str.replace(/```[\s\S]*?```/g, "");
+      str = str.replace(/`+/g, "");
+      // remove leading bullets/dashes/extra punctuation but keep numeric quantities
+      str = str.replace(/^[\-–•\)\.\s]+/, "");
+      // collapse multiple spaces
+      str = str.replace(/\s{2,}/g, " ");
+      // remove CJK characters as a defensive measure
+      str = str.replace(/[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]+/g, "");
+      // If the string looks like raw JSON (starts with { or [), drop it
+      if (/^[\s]*[\[{]/.test(str)) return "";
+      return str.trim();
+    }
+
     if (parsedJson && typeof parsedJson === "object") {
       // Map model fields to our recipe shape with safe defaults
       recipe = {
@@ -286,7 +313,7 @@ export async function POST(req: Request) {
           (parsedJson.image_url && String(parsedJson.image_url).trim()) || "",
         ingredients: Array.isArray(parsedJson.ingredients)
           ? parsedJson.ingredients
-              .map((i: any) => sanitizeString(i))
+              .map((i: any) => sanitizeIngredient(i))
               .filter(Boolean)
           : [],
         instructions: Array.isArray(parsedJson.instructions)
@@ -311,7 +338,7 @@ export async function POST(req: Request) {
       recipe.description = sanitizeString(recipe.description) || "";
       if (Array.isArray(recipe.ingredients)) {
         recipe.ingredients = recipe.ingredients
-          .map((i: any) => sanitizeString(i))
+          .map((i: any) => sanitizeIngredient(i))
           .filter(Boolean);
       }
       if (Array.isArray(recipe.instructions)) {
