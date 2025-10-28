@@ -1,4 +1,11 @@
+"use client";
+
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+
 export default function HowItWorksSection() {
+  const { status } = useSession();
+  const recipeHref = status === "authenticated" ? "/recipe" : "/signup";
   const steps = [
     {
       number: "01",
@@ -119,11 +126,11 @@ export default function HowItWorksSection() {
 
         {/* CTA */}
         <div className="text-center mt-12">
-          <a href="/signup">
+          <Link href={recipeHref}>
             <button className="bg-[#6D2323] text-white px-8 py-4 rounded-xl hover:bg-[#8B3030] transition-colors duration-300 font-semibold text-lg shadow-lg">
               Start Generating Recipes
             </button>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

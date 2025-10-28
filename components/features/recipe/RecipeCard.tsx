@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Recipe } from "@/types/recipe";
 import DifficultyBadge from "./DifficultyBadge";
 
@@ -18,12 +18,64 @@ export default function RecipeCard({
   const [showAllInstructions, setShowAllInstructions] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
 
+  // Refs for size calculations to determine if full lists fit
+  const backContentRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const ingredientsListRef = useRef<HTMLUListElement | null>(null);
+  const instructionsListRef = useRef<HTMLOListElement | null>(null);
+
+  const [canShowAllIngredients, setCanShowAllIngredients] = useState(false);
+  const [canShowAllInstructions, setCanShowAllInstructions] = useState(false);
+
   const PREVIEW_INGREDIENTS = 10;
   const PREVIEW_INSTRUCTIONS = 10;
 
   const image =
     recipe.image ||
     "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=800&h=800&fit=crop";
+
+  useEffect(() => {
+    // Measure whether full lists fit inside the back content area.
+    function updateFit() {
+      const container = backContentRef.current;
+      if (!container) return;
+
+      // header and tabs heights
+      const headerH = headerRef.current?.offsetHeight ?? 0;
+      const tabsH = tabsRef.current?.offsetHeight ?? 0;
+
+      // small padding allowance
+      const allowance = 24;
+      const available = container.clientHeight - headerH - tabsH - allowance;
+
+      // Ingredients full height
+      const ingEl = ingredientsListRef.current;
+      if (ingEl) {
+        const fullIngH = ingEl.scrollHeight;
+        const fits = fullIngH <= available;
+        setCanShowAllIngredients(fits);
+        if (fits) setShowAllIngredients(true);
+      }
+
+      // Instructions full height
+      const instEl = instructionsListRef.current;
+      if (instEl) {
+        const fullInstH = instEl.scrollHeight;
+        const fitsInst = fullInstH <= available;
+        setCanShowAllInstructions(fitsInst);
+        if (fitsInst) setShowAllInstructions(true);
+      }
+    }
+
+    // Run measurement after layout
+    const raf = requestAnimationFrame(updateFit);
+    window.addEventListener("resize", updateFit);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", updateFit);
+    };
+  }, [recipe.ingredients, recipe.instructions, isFlipped]);
 
   return (
     <article className="h-full">
@@ -109,8 +161,11 @@ export default function RecipeCard({
               WebkitBackfaceVisibility: "hidden",
             }}
           >
-            <div className="p-5 flex-1 flex flex-col">
-              <div className="flex items-start justify-between mb-4">
+            <div className="p-5 flex-1 flex flex-col" ref={backContentRef}>
+              <div
+                className="flex items-start justify-between mb-4"
+                ref={headerRef}
+              >
                 <h3 className="text-[#1a1a1a] font-bold text-lg md:text-xl">
                   {recipe.title}
                 </h3>
@@ -122,7 +177,7 @@ export default function RecipeCard({
                 </button>
               </div>
 
-              <div className="border-b border-gray-100 mb-4">
+              <div className="border-b border-gray-100 mb-4" ref={tabsRef}>
                 <div className="flex gap-6">
                   <button
                     type="button"
@@ -159,7 +214,7 @@ export default function RecipeCard({
               <div className="text-sm text-[#454545]">
                 {activeTab === "ingredients" && (
                   <div className="space-y-2">
-                    <ul className="space-y-1">
+                    <ul className="space-y-1" ref={ingredientsListRef}>
                       {(recipe.ingredients || [])
                         .slice(
                           0,
@@ -175,25 +230,25 @@ export default function RecipeCard({
                         ))}
                     </ul>
 
-                    {(recipe.ingredients?.length || 0) >
-                      PREVIEW_INGREDIENTS && (
-                      <button
-                        onClick={() =>
-                          setShowAllIngredients(!showAllIngredients)
-                        }
-                        className="text-xs text-[#6D2323] font-semibold hover:text-[#8B3030] mt-2"
-                      >
-                        {showAllIngredients
-                          ? "Hide"
-                          : `Show all ${recipe.ingredients?.length}`}
-                      </button>
-                    )}
+                    {(recipe.ingredients?.length || 0) > PREVIEW_INGREDIENTS &&
+                      !canShowAllIngredients && (
+                        <button
+                          onClick={() =>
+                            setShowAllIngredients(!showAllIngredients)
+                          }
+                          className="text-xs text-[#6D2323] font-semibold hover:text-[#8B3030] mt-2"
+                        >
+                          {showAllIngredients
+                            ? "Hide"
+                            : `Show all ${recipe.ingredients?.length}`}
+                        </button>
+                      )}
                   </div>
                 )}
 
                 {activeTab === "instructions" && (
                   <div className="space-y-3">
-                    <ol className="space-y-2">
+                    <ol className="space-y-2" ref={instructionsListRef}>
                       {(recipe.instructions || [])
                         .slice(
                           0,
@@ -214,18 +269,19 @@ export default function RecipeCard({
                     </ol>
 
                     {(recipe.instructions?.length || 0) >
-                      PREVIEW_INSTRUCTIONS && (
-                      <button
-                        onClick={() =>
-                          setShowAllInstructions(!showAllInstructions)
-                        }
-                        className="text-xs text-[#6D2323] font-semibold hover:text-[#8B3030] mt-2"
-                      >
-                        {showAllInstructions
-                          ? "Hide"
-                          : `Show all ${recipe.instructions?.length} steps`}
-                      </button>
-                    )}
+                      PREVIEW_INSTRUCTIONS &&
+                      !canShowAllInstructions && (
+                        <button
+                          onClick={() =>
+                            setShowAllInstructions(!showAllInstructions)
+                          }
+                          className="text-xs text-[#6D2323] font-semibold hover:text-[#8B3030] mt-2"
+                        >
+                          {showAllInstructions
+                            ? "Hide"
+                            : `Show all ${recipe.instructions?.length} steps`}
+                        </button>
+                      )}
                   </div>
                 )}
               </div>

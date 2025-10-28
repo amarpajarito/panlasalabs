@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 const socialProof = [
   {
@@ -40,6 +43,8 @@ const socialProof = [
 ];
 
 export default function AboutCTASection() {
+  const { status } = useSession();
+  const recipeHref = status === "authenticated" ? "/recipe" : "/signup";
   return (
     <section className="w-full py-12 md:py-16 bg-gradient-to-b from-[#FEF9E1]/20 to-white">
       <div className="max-w-[1512px] mx-auto px-4 sm:px-6 md:px-12 lg:px-[86px]">
@@ -64,7 +69,7 @@ export default function AboutCTASection() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-6">
-            <Link href="/signup">
+            <Link href={recipeHref}>
               <button className="group bg-white text-[#6D2323] px-8 py-3 rounded-lg hover:bg-[#FEF9E1] transition-colors duration-200 font-semibold shadow-lg flex items-center gap-2">
                 Start Your Journey
                 <svg
@@ -83,7 +88,7 @@ export default function AboutCTASection() {
               </button>
             </Link>
 
-            <Link href="/recipe">
+            <Link href="/allrecipes">
               <button className="border-2 border-white text-white px-8 py-3 rounded-lg hover:bg-white hover:text-[#6D2323] transition-colors duration-200 font-semibold">
                 Explore Recipes
               </button>

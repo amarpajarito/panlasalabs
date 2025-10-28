@@ -1,57 +1,12 @@
 "use client";
 
 import ReviewCard from "./ReviewCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Constants
 const DEFAULT_AVATAR = "/images/testimonial-user-logo.png";
 
-const reviews = [
-  {
-    rating: 5,
-    review:
-      "PanlasaLabs made cooking so much easier! I just type in what's in my fridge and get amazing Filipino recipes. Perfect for busy weeknights!",
-    name: "Maria Santos",
-    designation: "Home Cook",
-  },
-  {
-    rating: 4,
-    review:
-      "The AI suggestions are really smart. It helped me create a healthier version of adobo that my family loved. Highly recommend!",
-    name: "Juan dela Cruz",
-    designation: "Food Enthusiast",
-  },
-  {
-    rating: 5,
-    review:
-      "As a beginner cook, this app is a lifesaver! The step-by-step instructions are clear, and the Filipino recipes are authentic.",
-    name: "Angela Reyes",
-    designation: "Student",
-  },
-  {
-    rating: 5,
-    review:
-      "I love how it considers my dietary restrictions. Finally found a recipe generator that understands vegetarian Filipino cuisine!",
-    name: "Carlos Bautista",
-    designation: "Vegetarian Chef",
-  },
-  {
-    rating: 4,
-    review:
-      "Great for discovering new recipes! The ingredient swap feature is brilliant when I'm missing something. Very practical and user-friendly.",
-    name: "Liza Mendoza",
-    designation: "Working Mom",
-  },
-  {
-    rating: 5,
-    review:
-      "This changed how I meal prep! The AI understands Filipino flavors perfectly and helps reduce food waste. Salamat PanlasaLabs!",
-    name: "Ramon Garcia",
-    designation: "Meal Prep Enthusiast",
-  },
-];
-
-// Star Rating Component
+// Star Rating Component that fills based on rating (0-5)
 const StarRating = ({
   rating,
   size = "w-4 h-4",
@@ -60,29 +15,114 @@ const StarRating = ({
   size?: string;
 }) => (
   <div className="flex gap-1">
-    {[...Array(5)].map((_, i) => (
-      <svg
-        key={i}
-        className={`${size} fill-current text-yellow-400`}
-        viewBox="0 0 20 20"
-      >
-        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-      </svg>
-    ))}
+    {[0, 1, 2, 3, 4].map((i) => {
+      const filled = i < Math.round(rating);
+      return (
+        <svg
+          key={i}
+          className={`${size} ${
+            filled ? "fill-current text-yellow-400" : "text-gray-300"
+          }`}
+          viewBox="0 0 20 20"
+        >
+          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+        </svg>
+      );
+    })}
   </div>
 );
 
 export default function FeedbackReviewsSection() {
   const [filter, setFilter] = useState<"all" | 5 | 4 | 3>("all");
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch feedback from API
+  async function loadFeedback() {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/feedback");
+      const data = await res.json();
+      if (res.ok && data?.feedback) {
+        // Map server rows to expected shape
+        const mapped = data.feedback.map((r: any) => ({
+          rating: r.rating,
+          message: r.message,
+          // don't force anonymous here; let the UI prefer server/user data
+          name: r.name ?? null,
+          avatar_url: r.avatar_url ?? null,
+          created_at: r.created_at,
+          provided_name: r.provided_name ?? null,
+          provided_avatar: r.provided_avatar ?? null,
+        }));
+        setReviews(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to load feedback:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Load on mount
+  useEffect(() => {
+    loadFeedback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listen for immediate client-side feedback submissions so we can show them without waiting for DB
+  useEffect(() => {
+    function onSubmitted(e: any) {
+      const d = e.detail;
+      if (!d) return;
+      // prepend submitted review if not already present
+      setReviews((prev) => {
+        const exists = prev.some(
+          (r) => r.created_at === d.created_at && r.message === d.message
+        );
+        if (exists) return prev;
+        return [
+          {
+            rating: d.rating,
+            message: d.message,
+            name: d.name,
+            avatar_url: d.avatar_url,
+            created_at: d.created_at,
+          },
+          ...prev,
+        ];
+      });
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener(
+        "feedback:submitted",
+        onSubmitted as EventListener
+      );
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener(
+          "feedback:submitted",
+          onSubmitted as EventListener
+        );
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredReviews =
     filter === "all"
       ? reviews
       : reviews.filter((review) => review.rating === filter);
 
-  const averageRating = (
-    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-  ).toFixed(1);
+  const averageRating =
+    reviews.length > 0
+      ? (
+          reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+        ).toFixed(1)
+      : "0.0";
 
   return (
     <section
@@ -110,7 +150,7 @@ export default function FeedbackReviewsSection() {
               <div className="text-3xl md:text-4xl font-bold text-[#6D2323] mb-1">
                 {averageRating}
               </div>
-              <StarRating rating={5} />
+              <StarRating rating={Number(averageRating)} />
               <p className="text-sm text-[#454545]">{reviews.length} reviews</p>
             </div>
           </div>
@@ -166,10 +206,12 @@ export default function FeedbackReviewsSection() {
             <ReviewCard
               key={index}
               rating={review.rating}
-              review={review.review}
-              avatarSrc={DEFAULT_AVATAR}
-              name={review.name}
-              designation={review.designation}
+              review={review.message ?? review.review ?? ""}
+              avatarSrc={
+                review.avatar_url ?? review.provided_avatar ?? DEFAULT_AVATAR
+              }
+              name={review.name ?? review.provided_name ?? "Anonymous"}
+              designation={review.designation ?? ""}
             />
           ))}
         </div>

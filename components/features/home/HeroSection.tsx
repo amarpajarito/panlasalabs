@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 const heroImages = [
   {
@@ -26,6 +27,10 @@ const heroImages = [
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const { data: session, status } = useSession();
+
+  // If authenticated, send user to recipe page; otherwise to signup
+  const recipeHref = status === "authenticated" ? "/recipe" : "/signup";
 
   // Auto-advance slideshow
   useEffect(() => {
@@ -106,7 +111,7 @@ export default function HeroSection() {
 
           {/* CTA Buttons - Minimalistic Design */}
           <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <Link href="/signup">
+            <Link href={recipeHref}>
               <button className="bg-[#6D2323] text-white px-8 py-3.5 rounded-lg hover:bg-[#8B3030] transition-colors duration-200 font-semibold text-base flex items-center justify-center gap-2">
                 <svg
                   className="w-5 h-5"

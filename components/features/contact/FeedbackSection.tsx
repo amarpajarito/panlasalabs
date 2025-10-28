@@ -18,22 +18,74 @@ export default function FeedbackSection() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement actual API call to save feedback
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      console.log("Feedback submitted:", {
+      const payload = {
         rating,
-        feedback,
-        user: session?.user,
+        message: feedback,
+        user: session?.user ?? null,
+      };
+
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      setSuccessMessage("Thank you for your feedback!");
-      setRating(0);
-      setFeedback("");
+      // Try to parse JSON but guard against empty/non-json responses
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        // no-op: leave data as null
+      }
+
+      if (!res.ok) {
+        console.error(
+          "Failed to submit feedback status:",
+          res.status,
+          "body:",
+          data
+        );
+        setSuccessMessage("Failed to submit feedback. Please try again.");
+      } else {
+        setSuccessMessage("Thank you for your feedback!");
+        // If API returned the normalized feedback and/or provided user info, emit a client event
+        try {
+          const normalized = data?.feedback ?? null;
+          const provided = data?.provided ?? null;
+          const emitted = {
+            rating: normalized?.rating ?? rating,
+            message: normalized?.message ?? feedback,
+            name:
+              normalized?.name ??
+              provided?.provided_name ??
+              session?.user?.name ??
+              null,
+            avatar_url:
+              normalized?.avatar_url ??
+              provided?.provided_avatar ??
+              session?.user?.image ??
+              null,
+            created_at: normalized?.created_at ?? new Date().toISOString(),
+          };
+          // dispatch a cross-window event so the reviews component can listen and update immediately
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("feedback:submitted", { detail: emitted })
+            );
+          }
+        } catch (e) {
+          console.warn("Could not emit feedback event", e);
+        }
+
+        setRating(0);
+        setFeedback("");
+      }
 
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Error submitting feedback:", error);
+      setSuccessMessage("Failed to submit feedback. Please try again.");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } finally {
       setIsSubmitting(false);
     }
