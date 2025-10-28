@@ -131,57 +131,55 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, account }) {
+      // Keep the token minimal and deterministic. On initial sign-in, ensure
+      // the token.id is the application's user UUID (not the OAuth provider
+      // numeric id). For GitHub OAuth we look up the user by email in our
+      // Supabase `users` table and replace the token id with the DB UUID.
+      const newToken: any = { ...token };
       if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.picture = user.image;
-      }
+        // Default: copy fields from NextAuth's user object
+        newToken.email = user.email;
+        newToken.name = user.name;
+        newToken.picture = user.image;
 
-      // If this is the initial sign-in (user is present), prefer values from
-      // the `public.users` table when available so avatar/name come from our
-      // application DB rather than provider metadata (avoids mismatched names).
-      if (user) {
-        try {
-          const supabase = getSupabaseServerClient();
-          const { data: dbUser, error } = await supabase
-            .from("users")
-            .select("name,avatar_url,first_name,last_name")
-            .eq("email", token.email)
-            .maybeSingle();
+        // If this is a GitHub sign-in (or other OAuth), NextAuth may provide
+        // the provider's numeric id as user.id. Resolve the application
+        // user UUID from our `users` table using the server Supabase client.
+        if (account?.provider === "github") {
+          try {
+            const supabase = getSupabaseServerClient();
+            const { data: dbUser, error } = await supabase
+              .from("users")
+              .select("id")
+              .eq("email", user.email)
+              .maybeSingle();
 
-          if (!error && dbUser) {
-            // Prefer explicit first_name/last_name if present, otherwise use name
-            if (dbUser.first_name || dbUser.last_name) {
-              const first = dbUser.first_name || "";
-              const last = dbUser.last_name || "";
-              token.name =
-                `${first}${first && last ? " " : ""}${last}`.trim() ||
-                token.name;
-            } else if (dbUser.name) {
-              token.name = dbUser.name;
+            if (!error && dbUser && (dbUser as any).id) {
+              newToken.id = (dbUser as any).id;
+            } else {
+              // Fallback to whatever NextAuth gave us (rare). This avoids
+              // blocking sign-in on unexpected DB issues.
+              newToken.id = user.id;
             }
-
-            if (dbUser.avatar_url) token.picture = dbUser.avatar_url;
-          } else if (error) {
+          } catch (e) {
             console.error(
-              "[auth] error fetching user from DB in jwt callback:",
-              error
+              "Error resolving Supabase user id in jwt callback:",
+              e
             );
+            newToken.id = user.id;
           }
-        } catch (err) {
-          console.error(
-            "[auth] unexpected error in jwt callback DB fetch:",
-            err
-          );
+        } else {
+          // Non-OAuth (credentials) paths should already return the application
+          // user id from authorize(), so use that.
+          newToken.id = user.id;
         }
       }
 
       if (account?.provider === "github") {
-        token.provider = "github";
+        newToken.provider = "github";
       }
 
-      return token;
+      return newToken;
     },
 
     async session({ session, token }) {
