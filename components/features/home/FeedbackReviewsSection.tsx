@@ -163,7 +163,9 @@ export default function FeedbackReviewsSection() {
           ...prev,
         ];
         // Remove placeholder items at the end to keep the list length reasonable
-        const filtered = newArr.filter((r) => !r.placeholder || r.name !== undefined);
+        const filtered = newArr.filter(
+          (r) => !r.placeholder || r.name !== undefined
+        );
         // Ensure at most 6 items (prefer real entries)
         return filtered.slice(0, 6);
       });

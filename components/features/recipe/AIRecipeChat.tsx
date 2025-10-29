@@ -42,6 +42,11 @@ export default function AIRecipeChat() {
     "ingredients"
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const recipePanelRef = useRef<HTMLDivElement>(null);
+  // track the last high-level action so we can avoid conflicting auto-scrolls
+  // (e.g., chat auto-scroll vs intentionally scrolling the recipe panel)
+  const lastActionRef = useRef<string | null>(null);
   const [history, setHistory] = useState<
     { id: string; title: string; timestamp: string }[]
   >([]);
@@ -54,7 +59,58 @@ export default function AIRecipeChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const scrollChatToTop = () => {
+    try {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      // fallback: scroll window to top of chat area
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const scrollToRecipe = () => {
+    // Try to bring the right-hand recipe panel into view. If it's not
+    // rendered (small screens) fall back to scrolling to top of page.
+    try {
+      if (recipePanelRef.current) {
+        // allow a small delay so the DOM has updated
+        setTimeout(() => {
+          recipePanelRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+            inline: "nearest",
+          });
+          // clear the recipe action marker after the scroll finishes so
+          // subsequent message updates will resume normal auto-scrolling
+          setTimeout(() => {
+            lastActionRef.current = null;
+          }, 600);
+        }, 60);
+        return;
+      }
+      // fallback
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      // ignore
+    }
+  };
+
   useEffect(() => {
+    // If the last action was showing a recipe, suppress automatic chat
+    // scroll-to-bottom because we intentionally bring the recipe panel
+    // into view instead.
+    if (lastActionRef.current === "recipe") return;
+    // If the last action was a user message but a recipe panel is open,
+    // scroll the chat container to the top instead of auto-scrolling to
+    // the bottom so the right-hand recipe panel remains visible.
+    if (lastActionRef.current === "message" && currentRecipe) {
+      scrollChatToTop();
+      return;
+    }
     scrollToBottom();
   }, [messages]);
 
@@ -73,7 +129,10 @@ export default function AIRecipeChat() {
       if (lastId) {
         // attempt to restore
         fetchAndNormalizeRecipe(lastId).then((mapped) => {
-          if (mapped) setCurrentRecipe(mapped);
+          if (mapped) {
+            setCurrentRecipe(mapped);
+            scrollToRecipe();
+          }
         });
       }
     } catch (e) {
@@ -90,6 +149,8 @@ export default function AIRecipeChat() {
       try {
         const mapped = await fetchAndNormalizeRecipe(String(recipeId));
         if (mapped) {
+          // mark that we're showing a recipe so chat auto-scroll is suppressed
+          lastActionRef.current = "recipe";
           setCurrentRecipe(mapped);
           setShowAllIngredients(false);
           setShowAllInstructions(false);
@@ -100,6 +161,12 @@ export default function AIRecipeChat() {
               id: String(recipeId),
               title: mapped.title || "Generated Recipe",
             });
+          } catch (e) {
+            /* ignore */
+          }
+          // bring recipe panel into view
+          try {
+            scrollToRecipe();
           } catch (e) {
             /* ignore */
           }
@@ -302,6 +369,8 @@ export default function AIRecipeChat() {
       timestamp: new Date(),
     };
 
+    // mark this user action so chat auto-scroll behaves normally
+    lastActionRef.current = "message";
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
@@ -342,6 +411,8 @@ export default function AIRecipeChat() {
         try {
           const mapped = await fetchAndNormalizeRecipe(String(recipeId));
           if (mapped) {
+            // prefer showing the recipe panel instead of jumping chat scroll
+            lastActionRef.current = "recipe";
             setCurrentRecipe(mapped);
             setShowAllIngredients(false);
             setShowAllInstructions(false);
@@ -352,6 +423,12 @@ export default function AIRecipeChat() {
                 id: String(recipeId),
                 title: mapped.title || "Generated Recipe",
               });
+            } catch (e) {
+              /* ignore */
+            }
+            // scroll recipe panel into view so the user sees the generated recipe
+            try {
+              scrollToRecipe();
             } catch (e) {
               /* ignore */
             }
@@ -520,9 +597,17 @@ export default function AIRecipeChat() {
                                     const mapped =
                                       await fetchAndNormalizeRecipe(h.id);
                                     if (mapped) {
+                                      // indicate we're showing a recipe so chat
+                                      // auto-scroll is suppressed
+                                      lastActionRef.current = "recipe";
                                       setCurrentRecipe(mapped);
                                       setActiveTab("ingredients");
                                       setShowHistory(false);
+                                      try {
+                                        scrollToRecipe();
+                                      } catch (e) {
+                                        /* ignore */
+                                      }
                                     }
                                   }}
                                   className="w-full text-left p-4 hover:bg-[#FEF9E1]/50 transition-colors group"
