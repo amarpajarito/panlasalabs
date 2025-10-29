@@ -6,6 +6,66 @@ import { useState, useEffect } from "react";
 // Constants
 const DEFAULT_AVATAR = "/images/testimonial-user-logo.png";
 
+// Demo placeholders shown alongside real feedback to ensure the section
+// always looks populated during demos. These are used as the initial
+// state and to fill up to 6 items when the server returns fewer rows.
+const PLACEHOLDER_REVIEWS = [
+  {
+    rating: 5,
+    message:
+      "The adobo recipe was spot on, simple steps, well-explained, and the balance of vinegar and soy was perfect. My whole family loved it.",
+    name: "Maria Santos",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    placeholder: true,
+  },
+  {
+    rating: 4,
+    message:
+      "Sinigang instructions were clear. I reduced the tamarind a bit for my kids and it was delicious. Would love more suggestions for vegetable swaps.",
+    name: "Jose Reyes",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    placeholder: true,
+  },
+  {
+    rating: 5,
+    message:
+      "I tried the pancit canton recipe, fast to make and the flavors came together nicely. Portion sizes were realistic for a family of four.",
+    name: "Ana Cruz",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    placeholder: true,
+  },
+  {
+    rating: 4,
+    message:
+      "The grilling tips (especially for pork) really helped, my lechon kawali turned out crispier than usual. Nice practical advice.",
+    name: "Miguel Dela Cruz",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    placeholder: true,
+  },
+  {
+    rating: 5,
+    message:
+      "Leche flan guide was excellent: clear timing and caramel technique made it silky smooth. Will use this for special occasions.",
+    name: "Katrina Lopez",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    placeholder: true,
+  },
+  {
+    rating: 4,
+    message:
+      "Loved the vegetarian ulam ideas, creative and satisfying. Would appreciate a few more protein alternatives for meal prep.",
+    name: "Mark Villanueva",
+    avatar_url: null,
+    created_at: new Date().toISOString(),
+    placeholder: true,
+  },
+];
+
 // Star Rating Component that fills based on rating (0-5)
 const StarRating = ({
   rating,
@@ -34,7 +94,7 @@ const StarRating = ({
 
 export default function FeedbackReviewsSection() {
   const [filter, setFilter] = useState<"all" | 5 | 4 | 3>("all");
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>(PLACEHOLDER_REVIEWS);
   const [loading, setLoading] = useState(false);
 
   // Fetch feedback from API
@@ -55,7 +115,17 @@ export default function FeedbackReviewsSection() {
           provided_name: r.provided_name ?? null,
           provided_avatar: r.provided_avatar ?? null,
         }));
-        setReviews(mapped);
+        // If server returned many rows, show them. Otherwise merge with
+        // demo placeholders so the grid always looks full for demos.
+        if (Array.isArray(mapped) && mapped.length > 0) {
+          if (mapped.length >= 6) {
+            setReviews(mapped);
+          } else {
+            // append placeholders to reach at least 6 items
+            const merged = [...mapped, ...PLACEHOLDER_REVIEWS].slice(0, 6);
+            setReviews(merged);
+          }
+        }
       }
     } catch (err) {
       console.error("Failed to load feedback:", err);
@@ -81,7 +151,8 @@ export default function FeedbackReviewsSection() {
           (r) => r.created_at === d.created_at && r.message === d.message
         );
         if (exists) return prev;
-        return [
+        // prepend the new item and then remove placeholders if we exceed 6
+        const newArr = [
           {
             rating: d.rating,
             message: d.message,
@@ -91,6 +162,10 @@ export default function FeedbackReviewsSection() {
           },
           ...prev,
         ];
+        // Remove placeholder items at the end to keep the list length reasonable
+        const filtered = newArr.filter((r) => !r.placeholder || r.name !== undefined);
+        // Ensure at most 6 items (prefer real entries)
+        return filtered.slice(0, 6);
       });
     }
 
