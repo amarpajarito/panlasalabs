@@ -379,6 +379,81 @@ export async function POST(req: Request) {
       }
     }
 
+    // Helpers: normalize time strings like "15 minutes", "1 hr 30 mins", "15-20 minutes"
+    function parseDurationToMinutes(val: any): number | null {
+      if (val === null || val === undefined) return null;
+      const s = String(val).trim().toLowerCase();
+      if (!s) return null;
+
+      // pure integer -> assume minutes
+      if (/^\d+$/.test(s)) return parseInt(s, 10);
+
+      // hours and minutes e.g. "1 hr 30 mins" or "1 hour 30 minutes"
+      const hoursMatch = s.match(/(\d+)\s*(?:h|hr|hour|hours)\b/);
+      const minsMatch = s.match(/(\d+)\s*(?:m|min|mins|minute|minutes)\b/);
+      let total = 0;
+      if (hoursMatch) total += parseInt(hoursMatch[1], 10) * 60;
+      if (minsMatch) total += parseInt(minsMatch[1], 10);
+      if (hoursMatch || minsMatch) return total || null;
+
+      // ranges like "15-20 minutes" or "15 – 20 mins" -> average
+      const rangeMatch = s.match(/(\d+)\s*[-–—]\s*(\d+)/);
+      if (rangeMatch) {
+        const a = parseInt(rangeMatch[1], 10);
+        const b = parseInt(rangeMatch[2], 10);
+        if (!isNaN(a) && !isNaN(b)) return Math.round((a + b) / 2);
+      }
+
+      // fallback: first number in string
+      const firstNum = s.match(/(\d+)/);
+      if (firstNum) return parseInt(firstNum[1], 10);
+
+      return null;
+    }
+
+    function parseServings(val: any): number | null {
+      if (val === null || val === undefined) return null;
+      const s = String(val).trim().toLowerCase();
+      if (!s) return null;
+      // if it's a plain number
+      if (/^\d+$/.test(s)) return parseInt(s, 10);
+      // catch patterns like "serves 4" or "makes 6 servings"
+      const m = s.match(/(\d+)/);
+      if (m) return parseInt(m[1], 10);
+      return null;
+    }
+
+    function titleCase(s: any): string | null {
+      if (s === null || s === undefined) return null;
+      return String(s)
+        .toLowerCase()
+        .split(/\s+/)
+        .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+        .join(" ")
+        .trim();
+    }
+
+    function normalizeDifficulty(val: any): string | null {
+      if (val === null || val === undefined) return null;
+      const s = String(val).trim().toLowerCase();
+      if (!s) return null;
+      if (s.includes("easy") || s.includes("beginner")) return "Easy";
+      if (
+        s.includes("medium") ||
+        s.includes("moderate") ||
+        s.includes("intermediate")
+      )
+        return "Medium";
+      if (
+        s.includes("hard") ||
+        s.includes("difficult") ||
+        s.includes("advanced")
+      )
+        return "Hard";
+      // fallback: title-case the value
+      return titleCase(s);
+    }
+
     // Save parsed recipe into the `public.recipes` table using the
     // service role key. We return only the inserted id to the client so the
     // chat UI never receives the full recipe content.
@@ -402,17 +477,33 @@ export async function POST(req: Request) {
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
 
+        // Normalize time/servings to integers where possible to match DB numeric columns
+        const prepMinutes = parseDurationToMinutes(
+          recipe.prep_time ?? recipe.prepTime ?? null
+        );
+        const cookMinutes = parseDurationToMinutes(
+          recipe.cook_time ?? recipe.cookTime ?? null
+        );
+        const servingsInt = parseServings(recipe.servings ?? null);
+
+        // normalize difficulty + cuisine for consistent storage
+        const normalizedDifficulty = normalizeDifficulty(
+          recipe.difficulty ?? null
+        );
+        const normalizedCuisine = titleCase(recipe.cuisine ?? null);
+
         const insertBody: any = {
           user_id: sessionUserId,
           title: recipe.title || null,
           description: recipe.description || null,
           ingredients: recipe.ingredients || [],
           instructions: recipe.instructions || [],
-          cuisine: null,
-          difficulty: null,
-          prep_time: null,
-          cook_time: null,
-          servings: null,
+          cuisine: normalizedCuisine ?? null,
+          difficulty: normalizedDifficulty ?? null,
+          // store numeric minutes (or null) instead of freeform strings
+          prep_time: prepMinutes,
+          cook_time: cookMinutes,
+          servings: servingsInt,
           image_url: recipe.image || null,
           is_public: false,
           created_at: new Date().toISOString(),
