@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 interface Message {
   id: string;
@@ -51,6 +52,11 @@ export default function AIRecipeChat() {
     { id: string; title: string; timestamp: string }[]
   >([]);
   const [showHistory, setShowHistory] = useState(false);
+  const { data: session } = useSession();
+  const userId = (session as any)?.user?.id ?? "anonymous";
+
+  const HISTORY_KEY = `panlasa:prompted_history:${userId}`;
+  const LAST_ID_KEY = `panlasa:last_prompted_id:${userId}`;
 
   const PREVIEW_INGREDIENTS = 5;
   const PREVIEW_INSTRUCTIONS = 3;
@@ -114,31 +120,84 @@ export default function AIRecipeChat() {
     scrollToBottom();
   }, [messages]);
 
-  // Load last prompted recipe and local history from localStorage on mount
+  // Load last prompted recipe and local history from localStorage on mount or when user changes
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = localStorage.getItem("panlasa:prompted_history");
-      if (raw) setHistory(JSON.parse(raw));
-    } catch (e) {
-      // ignore
+    // If user is authenticated, load history from server; otherwise use localStorage
+    async function load() {
+      if ((session as any)?.user && userId !== "anonymous") {
+        try {
+          await fetchServerHistory();
+        } catch (e) {
+          // fallback to localStorage if server call fails
+          try {
+            const raw = localStorage.getItem(HISTORY_KEY);
+            if (raw) setHistory(JSON.parse(raw));
+            else setHistory([]);
+          } catch (err) {
+            setHistory([]);
+          }
+        }
+      } else {
+        try {
+          const raw = localStorage.getItem(HISTORY_KEY);
+          if (raw) setHistory(JSON.parse(raw));
+          else setHistory([]);
+        } catch (e) {
+          setHistory([]);
+        }
+      }
+
+      try {
+        const lastId = localStorage.getItem(LAST_ID_KEY);
+        if (lastId) {
+          // attempt to restore
+          fetchAndNormalizeRecipe(lastId)
+            .then((mapped) => {
+              if (mapped) {
+                setCurrentRecipe(mapped);
+                lastActionRef.current = "recipe";
+                scrollToRecipe();
+              }
+            })
+            .catch(() => {
+              // If restore fails (forbidden or not found) clear the stored last id
+              try {
+                localStorage.removeItem(LAST_ID_KEY);
+              } catch (e) {
+                /* ignore */
+              }
+            });
+        }
+      } catch (e) {
+        // ignore
+      }
     }
 
+    load();
+  }, [userId]);
+
+  // Fetch recent history for the signed-in user from server
+  async function fetchServerHistory() {
     try {
-      const lastId = localStorage.getItem("panlasa:last_prompted_id");
-      if (lastId) {
-        // attempt to restore
-        fetchAndNormalizeRecipe(lastId).then((mapped) => {
-          if (mapped) {
-            setCurrentRecipe(mapped);
-            scrollToRecipe();
-          }
-        });
+      const res = await fetch("/api/users/history");
+      if (!res.ok) {
+        throw new Error("Failed to fetch server history");
       }
-    } catch (e) {
-      // ignore
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error || "No history");
+      const mapped = (json.history || []).map((r: any) => ({
+        id: r.id,
+        title: r.title || "Generated Recipe",
+        timestamp: r.created_at || new Date().toISOString(),
+      }));
+      setHistory(mapped);
+      return mapped;
+    } catch (err) {
+      console.warn("fetchServerHistory error:", err);
+      throw err;
     }
-  }, []);
+  }
 
   // Listen for recipe creation events from PromptedRecipeSection
   useEffect(() => {
@@ -338,7 +397,7 @@ export default function AIRecipeChat() {
   function saveHistoryEntry(entry: { id: string; title: string }) {
     if (typeof window === "undefined") return;
     try {
-      const raw = localStorage.getItem("panlasa:prompted_history");
+      const raw = localStorage.getItem(HISTORY_KEY);
       const arr = raw ? (JSON.parse(raw) as any[]) : [];
       // dedupe by id
       const filtered = arr.filter((r) => r.id !== entry.id);
@@ -350,8 +409,8 @@ export default function AIRecipeChat() {
         },
         ...filtered,
       ].slice(0, 20); // keep last 20
-      localStorage.setItem("panlasa:prompted_history", JSON.stringify(newArr));
-      localStorage.setItem("panlasa:last_prompted_id", entry.id);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(newArr));
+      localStorage.setItem(LAST_ID_KEY, entry.id);
       setHistory(newArr);
     } catch (e) {
       // ignore
@@ -423,6 +482,14 @@ export default function AIRecipeChat() {
                 id: String(recipeId),
                 title: mapped.title || "Generated Recipe",
               });
+              // If authenticated, refresh server-backed history so history list reflects DB state
+              if (userId !== "anonymous") {
+                try {
+                  await fetchServerHistory();
+                } catch (e) {
+                  /* ignore */
+                }
+              }
             } catch (e) {
               /* ignore */
             }
@@ -470,10 +537,10 @@ export default function AIRecipeChat() {
   };
 
   const quickPrompts = [
-    "I have chicken and vegetables",
-    "Quick 30-minute dinner",
-    "Filipino dessert recipe",
-    "Vegetarian pasta dish",
+    "Chicken Adobo",
+    "Sinigang na Hipon",
+    "Sizzling Pork Sisig",
+    "Kare-Kare",
   ];
 
   const handleQuickPrompt = (prompt: string) => {
@@ -560,7 +627,7 @@ export default function AIRecipeChat() {
                       />
                       {/* Dropdown */}
                       <div className="absolute right-0 mt-2 w-80 bg-white border border-[#6D2323]/10 rounded-xl shadow-xl z-50 overflow-hidden">
-                        <div className="bg-gradient-to-r from-[#6D2323] to-[#8B3030] px-4 py-3">
+                        <div className="bg-[#6D2323] px-4 py-3">
                           <h3 className="text-white font-semibold text-sm">
                             Recent Recipes
                           </h3>
@@ -594,19 +661,58 @@ export default function AIRecipeChat() {
                                 <button
                                   key={h.id}
                                   onClick={async () => {
-                                    const mapped =
-                                      await fetchAndNormalizeRecipe(h.id);
-                                    if (mapped) {
-                                      // indicate we're showing a recipe so chat
-                                      // auto-scroll is suppressed
-                                      lastActionRef.current = "recipe";
-                                      setCurrentRecipe(mapped);
-                                      setActiveTab("ingredients");
-                                      setShowHistory(false);
-                                      try {
-                                        scrollToRecipe();
-                                      } catch (e) {
-                                        /* ignore */
+                                    try {
+                                      const mapped =
+                                        await fetchAndNormalizeRecipe(h.id);
+                                      if (mapped) {
+                                        // indicate we're showing a recipe so chat
+                                        // auto-scroll is suppressed
+                                        lastActionRef.current = "recipe";
+                                        setCurrentRecipe(mapped);
+                                        setActiveTab("ingredients");
+                                        setShowHistory(false);
+                                        try {
+                                          scrollToRecipe();
+                                        } catch (e) {
+                                          /* ignore */
+                                        }
+                                      } else {
+                                        // Not found or forbidden: refresh server history (if authenticated) or remove local entry
+                                        if (userId !== "anonymous") {
+                                          try {
+                                            await fetchServerHistory();
+                                          } catch (e) {
+                                            /* ignore */
+                                          }
+                                        } else {
+                                          // remove this id from local history
+                                          try {
+                                            const raw =
+                                              localStorage.getItem(HISTORY_KEY);
+                                            const arr = raw
+                                              ? (JSON.parse(raw) as any[])
+                                              : [];
+                                            const newArr = arr.filter(
+                                              (r) => r.id !== h.id
+                                            );
+                                            localStorage.setItem(
+                                              HISTORY_KEY,
+                                              JSON.stringify(newArr)
+                                            );
+                                            setHistory(newArr);
+                                          } catch (e) {
+                                            /* ignore */
+                                          }
+                                        }
+                                      }
+                                    } catch (err) {
+                                      // on error, try to refresh server history if authenticated
+                                      if (userId !== "anonymous") {
+                                        try {
+                                          await fetchServerHistory();
+                                        } catch (e) {
+                                          /* ignore */
+                                        }
                                       }
                                     }
                                   }}

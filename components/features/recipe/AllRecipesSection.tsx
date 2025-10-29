@@ -32,7 +32,7 @@ export default function AllRecipesSection() {
       title: "Pancit Bihon",
       description:
         "A classic stir-fried rice noodle dish with vegetables and choice of protein.",
-      image: "/images/recipe/pancit-bihon.png",
+      image: "/images/recipe/PancitBihon.png",
       difficulty: "Medium",
       ingredients: [
         "250g bihon (rice vermicelli)",
@@ -52,7 +52,7 @@ export default function AllRecipesSection() {
       title: "Halo-Halo",
       description:
         "A refreshing shaved-ice dessert layered with sweet toppings.",
-      image: "/images/recipe/halo-halo.png",
+      image: "/images/recipe/HaloHalo.jpg",
       difficulty: "Easy",
       ingredients: ["Shaved ice", "Evaporated milk", "Sweet beans", "Fruits"],
       instructions: [

@@ -348,6 +348,132 @@ export async function POST(req: Request) {
       }
     }
 
+    // If the model returned a JSON object but left many metadata fields empty
+    // (common with obscure/exotic dishes), attempt to extract those values
+    // from the raw model text as a best-effort fallback. Also, if ingredients
+    // or instructions are empty, reuse the heuristic parser output.
+    function extractLabelValueFromRaw(
+      raw: string,
+      labels: string[]
+    ): string | null {
+      if (!raw) return null;
+      for (const lab of labels) {
+        // match lines like "Prep time: 15 minutes" or "Prep Time - 15 mins"
+        const re = new RegExp(
+          "(^|\\n)\\s*" + lab + "\\s*[:\u2013-–]?\\s*([^\\n\\r]+)",
+          "i"
+        );
+        const m = raw.match(re);
+        if (m && m[2]) return m[2].trim();
+      }
+      return null;
+    }
+
+    // Only attempt these fallbacks when we have the original raw model text
+    if (typeof text === "string" && text.trim()) {
+      try {
+        const heur = parseRecipeFromText(text);
+
+        // If ingredients/instructions from JSON are empty but heuristic parser
+        // found something, prefer those values.
+        if (
+          Array.isArray(recipe.ingredients) &&
+          recipe.ingredients.length === 0 &&
+          Array.isArray(heur.ingredients) &&
+          heur.ingredients.length > 0
+        ) {
+          recipe.ingredients = heur.ingredients
+            .map((i: any) => sanitizeIngredient(i))
+            .filter(Boolean);
+        }
+        if (
+          Array.isArray(recipe.instructions) &&
+          recipe.instructions.length === 0 &&
+          Array.isArray(heur.instructions) &&
+          heur.instructions.length > 0
+        ) {
+          recipe.instructions = heur.instructions
+            .map((s: any) => sanitizeString(s))
+            .filter(Boolean);
+        }
+
+        // Try to fill missing metadata fields from labeled lines in the raw
+        // response (e.g., "Prep time: 15 minutes", "Servings: 2").
+        if (
+          !recipe.prep_time ||
+          recipe.prep_time === null ||
+          String(recipe.prep_time).trim() === ""
+        ) {
+          const v = extractLabelValueFromRaw(text, [
+            "prep time",
+            "preptime",
+            "prep_time",
+            "prep",
+          ]);
+          if (v) recipe.prep_time = v;
+        }
+        if (
+          !recipe.cook_time ||
+          recipe.cook_time === null ||
+          String(recipe.cook_time).trim() === ""
+        ) {
+          const v = extractLabelValueFromRaw(text, [
+            "cook time",
+            "cooktime",
+            "cook_time",
+            "cook",
+          ]);
+          if (v) recipe.cook_time = v;
+        }
+        if (
+          !recipe.servings ||
+          recipe.servings === null ||
+          String(recipe.servings).trim() === ""
+        ) {
+          const v = extractLabelValueFromRaw(text, [
+            "servings",
+            "serves",
+            "yield",
+          ]);
+          if (v) recipe.servings = v;
+        }
+        if (
+          !recipe.difficulty ||
+          recipe.difficulty === null ||
+          String(recipe.difficulty).trim() === ""
+        ) {
+          const v = extractLabelValueFromRaw(text, [
+            "difficulty",
+            "skill level",
+          ]);
+          if (v) recipe.difficulty = v;
+        }
+        if (
+          !recipe.cuisine ||
+          recipe.cuisine === null ||
+          String(recipe.cuisine).trim() === ""
+        ) {
+          const v = extractLabelValueFromRaw(text, [
+            "cuisine",
+            "region",
+            "origin",
+          ]);
+          if (v) recipe.cuisine = v;
+        }
+
+        // If description is empty, the heuristic parser often has a short
+        // paragraph we can use.
+        if (
+          (!recipe.description || String(recipe.description).trim() === "") &&
+          heur.description
+        ) {
+          recipe.description = sanitizeString(heur.description) || "";
+        }
+      } catch (e) {
+        // non-fatal
+      }
+    }
+
     // If the model provided an image_url, validate it before saving. We
     // prefer the model-provided image but only accept it if it is a reachable
     // http(s) URL and the resource looks like an image (content-type).
@@ -409,6 +535,129 @@ export async function POST(req: Request) {
       if (firstNum) return parseInt(firstNum[1], 10);
 
       return null;
+    }
+
+    // If core fields are still missing, do a single deterministic re-prompt
+    // asking the model to return ONLY the missing fields in strict JSON.
+    // This is low-cost and highly effective for recovering metadata for
+    // obscure dishes when the initial generation produced sparse JSON.
+    try {
+      const missing: string[] = [];
+      const wantFields = [
+        "ingredients",
+        "instructions",
+        "prep_time",
+        "cook_time",
+        "servings",
+        "difficulty",
+        "cuisine",
+        "description",
+      ];
+
+      for (const f of wantFields) {
+        const val = (recipe as any)[f];
+        if (f === "ingredients" || f === "instructions") {
+          if (!Array.isArray(val) || val.length === 0) missing.push(f);
+        } else {
+          if (val === null || val === undefined || String(val).trim() === "")
+            missing.push(f);
+        }
+      }
+
+      if (missing.length > 0 && typeof text === "string" && text.trim()) {
+        // Decide whether to request only missing fields or the full schema.
+        // If the original model output is extremely short (likely only a
+        // title) or many fields are missing, ask the model to produce the
+        // full schema using the original user prompt as context.
+        const shortOutput = text.trim().length < 60;
+        const requestFull = shortOutput || missing.length >= 5;
+
+        const fieldsToRequest = requestFull
+          ? [
+              "title",
+              "description",
+              "ingredients",
+              "instructions",
+              "prep_time",
+              "cook_time",
+              "servings",
+              "cuisine",
+              "difficulty",
+              "image_url",
+            ]
+          : missing;
+
+        // Tightened system prompt for re-prompt: strict JSON-only extractor
+        const followUpSystem = `You are a strict JSON extractor. Given the ORIGINAL_USER_PROMPT and the ORIGINAL_MODEL_OUTPUT, return a single valid JSON object containing ONLY these fields: ${JSON.stringify(
+          fieldsToRequest
+        )}. Do NOT include any commentary, markdown, or extra text. If a value is unknown, return null. Output must be parseable by JSON.parse().`;
+
+        const followUpUser = `ORIGINAL_USER_PROMPT:\n${prompt}\n\nORIGINAL_MODEL_OUTPUT:\n${text}\n\nPlease return a JSON object with only the requested keys.`;
+
+        try {
+          const followResp = await (ai as any).models.generateContent({
+            model,
+            contents: `${followUpSystem}\n\n${followUpUser}`,
+            // deterministic
+            temperature: 0.0,
+          });
+
+          const followText =
+            (followResp as any).text ??
+            (followResp as any)?.output?.[0]?.content?.[0]?.text ??
+            null;
+          if (followText) {
+            let parsedFollow: any = null;
+            try {
+              parsedFollow = JSON.parse(followText);
+            } catch (e) {
+              // try to extract first {...}
+              const fb = followText.indexOf("{");
+              const lb = followText.lastIndexOf("}");
+              if (fb !== -1 && lb !== -1 && lb > fb) {
+                try {
+                  parsedFollow = JSON.parse(followText.slice(fb, lb + 1));
+                } catch (e2) {
+                  parsedFollow = null;
+                }
+              }
+            }
+
+            if (parsedFollow && typeof parsedFollow === "object") {
+              // merge recovered fields into recipe
+              for (const k of Object.keys(parsedFollow)) {
+                if (parsedFollow[k] === null || parsedFollow[k] === undefined)
+                  continue;
+                // arrays: ensure arrays
+                if (k === "ingredients" || k === "instructions") {
+                  if (Array.isArray(parsedFollow[k])) {
+                    (recipe as any)[k] = parsedFollow[k];
+                  } else if (typeof parsedFollow[k] === "string") {
+                    // split simple comma/newline-delimited strings
+                    (recipe as any)[k] = parsedFollow[k]
+                      .split(/\r?\n|,/)
+                      .map((s: string) => s.trim())
+                      .filter(Boolean);
+                  }
+                } else {
+                  (recipe as any)[k] = parsedFollow[k];
+                }
+              }
+              // note in server logs when fallback filled fields (dev only)
+              try {
+                console.info(
+                  "AI re-prompt recovered fields:",
+                  Object.keys(parsedFollow)
+                );
+              } catch (e) {}
+            }
+          }
+        } catch (e) {
+          // non-fatal: continue with existing recipe values or heuristics
+        }
+      }
+    } catch (e) {
+      // swallow
     }
 
     function parseServings(val: any): number | null {

@@ -39,6 +39,31 @@ export default function PrivateNavbar() {
     "block w-6 h-0.5 bg-[#6D2323] transition-all duration-300";
 
   const user = session?.user;
+  const [localUser, setLocalUser] = useState<any>(user ?? null);
+
+  // Keep localUser in sync with session changes
+  useEffect(() => {
+    setLocalUser(session?.user ?? null);
+  }, [session?.user]);
+
+  // Listen for profile updates dispatched from other pages
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail;
+        if (detail)
+          setLocalUser((prev: any) => ({ ...(prev ?? {}), ...detail }));
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener("user-profile-updated", handler as EventListener);
+    return () =>
+      window.removeEventListener(
+        "user-profile-updated",
+        handler as EventListener
+      );
+  }, []);
 
   return (
     <nav
@@ -101,19 +126,21 @@ export default function PrivateNavbar() {
               className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-[#6D2323]/10 transition-all duration-200"
               aria-haspopup="true"
             >
-              {user?.image ? (
+              {localUser?.image ? (
                 <img
-                  src={user.image}
-                  alt={user.name ?? user.email ?? "User avatar"}
+                  src={localUser.image}
+                  alt={localUser.name ?? localUser.email ?? "User avatar"}
                   className="w-9 h-9 rounded-full object-cover -my-1"
                 />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-[#6D2323] text-white flex items-center justify-center font-medium -my-1">
-                  {(user?.name || user?.email || "?").charAt(0).toUpperCase()}
+                  {(localUser?.name || localUser?.email || "?")
+                    .charAt(0)
+                    .toUpperCase()}
                 </div>
               )}
               <span className="text-sm lg:text-base text-[#1a1a1a] font-medium max-w-[120px] truncate">
-                {user?.name ?? user?.email ?? "User"}
+                {localUser?.name ?? localUser?.email ?? "User"}
               </span>
             </button>
 
@@ -177,20 +204,22 @@ export default function PrivateNavbar() {
 
             <div className="flex flex-col gap-3 mt-6 sm:mt-8">
               <div className="flex items-center gap-3 px-4 py-3 border rounded bg-white">
-                {user?.image ? (
+                {localUser?.image ? (
                   <img
-                    src={user.image}
-                    alt={user.name ?? "avatar"}
+                    src={localUser.image}
+                    alt={localUser.name ?? "avatar"}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-[#6D2323] text-white flex items-center justify-center font-medium">
-                    {(user?.name || user?.email || "?").charAt(0).toUpperCase()}
+                    {(localUser?.name || localUser?.email || "?")
+                      .charAt(0)
+                      .toUpperCase()}
                   </div>
                 )}
                 <div className="ml-3">
                   <div className="text-sm font-medium text-[#1a1a1a]">
-                    {user?.name ?? user?.email ?? "User"}
+                    {localUser?.name ?? localUser?.email ?? "User"}
                   </div>
                 </div>
               </div>

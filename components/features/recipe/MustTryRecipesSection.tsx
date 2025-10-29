@@ -10,7 +10,7 @@ export default function MustTryRecipesSection() {
       id: "1",
       title: "Pancit Bihon",
       description: "A classic Filipino stir-fried rice noodle dish.",
-      image: "/images/recipe/recipe-1.png",
+      image: "/images/recipe/PancitBihon.png",
       difficulty: "Medium",
       ingredients: [
         "250g bihon (rice noodles), soaked in water",
@@ -42,7 +42,7 @@ export default function MustTryRecipesSection() {
       title: "Halo-Halo",
       description:
         "The ultimate Filipino shaved ice dessert with mixed sweets.",
-      image: "/images/recipe/recipe-2.png",
+      image: "/images/recipe/HaloHalo.jpg",
       difficulty: "Easy",
       ingredients: [
         "2 cups shaved ice",
@@ -71,7 +71,7 @@ export default function MustTryRecipesSection() {
       title: "Chicken Inasal",
       description:
         "A popular Filipino grilled chicken dish marinated in a unique blend of spices.",
-      image: "/images/recipe/recipe-3.png",
+      image: "/images/recipe/ChickenInasal.jpeg",
       difficulty: "Medium",
       ingredients: [
         "1kg chicken parts (legs or thighs)",
