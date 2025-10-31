@@ -3,19 +3,23 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useUserSession } from "@/hooks/useUserSession";
+import { UserMenu } from "./components/UserMenu";
+import { MobileMenu } from "./components/MobileMenu";
 
 export default function PrivateNavbar() {
-  const { data: session } = useSession();
+  const { user } = useUserSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  // Hydration protection
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "unset";
     return () => {
@@ -23,6 +27,7 @@ export default function PrivateNavbar() {
     };
   }, [isMenuOpen]);
 
+  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
@@ -31,39 +36,24 @@ export default function PrivateNavbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (userMenuOpen) setUserMenuOpen(false);
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [userMenuOpen]);
+
   const navLinkClass =
     "text-[#6D2323] font-medium hover:text-[#6D2323] hover:bg-[#6D2323]/10 px-3 py-2 rounded-md transition-all duration-200 text-sm lg:text-base whitespace-nowrap";
-  const mobileNavLinkClass =
-    "text-[#6D2323] font-medium hover:text-[#8B3030] transition-colors text-xl sm:text-2xl py-3 border-b border-[#6D2323]/20";
   const burgerLineClass =
     "block w-6 h-0.5 bg-[#6D2323] transition-all duration-300";
 
-  const user = session?.user;
-  const [localUser, setLocalUser] = useState<any>(user ?? null);
-
-  // Keep localUser in sync with session changes
-  useEffect(() => {
-    setLocalUser(session?.user ?? null);
-  }, [session?.user]);
-
-  // Listen for profile updates dispatched from other pages
-  useEffect(() => {
-    const handler = (e: Event) => {
-      try {
-        const detail = (e as CustomEvent)?.detail;
-        if (detail)
-          setLocalUser((prev: any) => ({ ...(prev ?? {}), ...detail }));
-      } catch (err) {
-        // ignore
-      }
-    };
-    window.addEventListener("user-profile-updated", handler as EventListener);
-    return () =>
-      window.removeEventListener(
-        "user-profile-updated",
-        handler as EventListener
-      );
-  }, []);
+  const closeAllMenus = () => {
+    setIsMenuOpen(false);
+    setUserMenuOpen(false);
+  };
 
   return (
     <nav
@@ -74,7 +64,8 @@ export default function PrivateNavbar() {
       }`}
     >
       <div className="px-4 sm:px-6 md:px-12 lg:px-[66px] py-4 sm:py-5 md:py-6 lg:py-8 flex items-center justify-between">
-        <Link href="/" className="flex-shrink-0">
+        {/* Logo */}
+        <Link href="/" className="flex-shrink-0" onClick={closeAllMenus}>
           <Image
             src="/images/logo.svg"
             alt="PanlasaLabs Logo"
@@ -85,6 +76,7 @@ export default function PrivateNavbar() {
           />
         </Link>
 
+        {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="md:hidden flex flex-col gap-1.5 z-50"
@@ -105,6 +97,7 @@ export default function PrivateNavbar() {
           />
         </button>
 
+        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4 lg:gap-8">
           <Link href="/" className={navLinkClass}>
             Home
@@ -119,127 +112,18 @@ export default function PrivateNavbar() {
             Contact Us
           </Link>
 
-          <div className="flex items-center gap-3 ml-2 lg:ml-4 relative">
-            {/* User display - larger size without affecting navbar height */}
-            <button
-              onClick={() => setUserMenuOpen((s) => !s)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-[#6D2323]/10 transition-all duration-200"
-              aria-haspopup="true"
-            >
-              {localUser?.image ? (
-                <img
-                  src={localUser.image}
-                  alt={localUser.name ?? localUser.email ?? "User avatar"}
-                  className="w-9 h-9 rounded-full object-cover -my-1"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-[#6D2323] text-white flex items-center justify-center font-medium -my-1">
-                  {(localUser?.name || localUser?.email || "?")
-                    .charAt(0)
-                    .toUpperCase()}
-                </div>
-              )}
-              <span className="text-sm lg:text-base text-[#1a1a1a] font-medium max-w-[120px] truncate">
-                {localUser?.name ?? localUser?.email ?? "User"}
-              </span>
-            </button>
-
-            {/* User dropdown */}
-            {userMenuOpen && (
-              <div className="absolute right-0 top-12 bg-white border border-[#eee] rounded shadow-md min-w-[160px] py-2 z-50">
-                <Link
-                  href="/profile"
-                  className="block px-4 py-2 text-sm text-[#1a1a1a] hover:bg-[#FEF9E1]"
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  Profile
-                </Link>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="w-full text-left px-4 py-2 text-sm text-[#1a1a1a] hover:bg-[#FEF9E1]"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+          {/* User Menu */}
+          <UserMenu
+            user={user}
+            isOpen={userMenuOpen}
+            onToggle={() => setUserMenuOpen(!userMenuOpen)}
+            onClose={() => setUserMenuOpen(false)}
+          />
         </div>
       </div>
 
-      <div
-        className={`md:hidden fixed inset-0 bg-[#FEF9E1] z-40 transition-transform duration-300 overflow-hidden ${
-          isMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex flex-col h-full justify-center items-center px-6 sm:px-8">
-          <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-md">
-            <Link
-              href="/"
-              onClick={() => setIsMenuOpen(false)}
-              className={mobileNavLinkClass}
-            >
-              Home
-            </Link>
-            <Link
-              href="/about"
-              onClick={() => setIsMenuOpen(false)}
-              className={mobileNavLinkClass}
-            >
-              About
-            </Link>
-            <Link
-              href="/recipe"
-              onClick={() => setIsMenuOpen(false)}
-              className={mobileNavLinkClass}
-            >
-              Recipe
-            </Link>
-            <Link
-              href="/contact"
-              onClick={() => setIsMenuOpen(false)}
-              className={mobileNavLinkClass}
-            >
-              Contact Us
-            </Link>
-
-            <div className="flex flex-col gap-3 mt-6 sm:mt-8">
-              <div className="flex items-center gap-3 px-4 py-3 border rounded bg-white">
-                {localUser?.image ? (
-                  <img
-                    src={localUser.image}
-                    alt={localUser.name ?? "avatar"}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#6D2323] text-white flex items-center justify-center font-medium">
-                    {(localUser?.name || localUser?.email || "?")
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
-                )}
-                <div className="ml-3">
-                  <div className="text-sm font-medium text-[#1a1a1a]">
-                    {localUser?.name ?? localUser?.email ?? "User"}
-                  </div>
-                </div>
-              </div>
-
-              <Link href="/profile" onClick={() => setIsMenuOpen(false)}>
-                <button className="w-full bg-white text-[#6D2323] px-6 py-3 rounded border border-[#eee] font-medium text-base sm:text-lg">
-                  Profile
-                </button>
-              </Link>
-
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="w-full bg-[#6D2323] text-white px-6 py-3 rounded font-medium text-base sm:text-lg"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Mobile Menu */}
+      <MobileMenu user={user} isOpen={isMenuOpen} onClose={closeAllMenus} />
     </nav>
   );
 }
