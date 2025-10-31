@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/images/logo.svg" alt="PanlasaLabs Logo" width="200"/>
+  <img src="public/images/logo.svg" alt="PanlasaLabs Logo" width="450"/>
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.5.6-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.1.0-blue)](https://react.dev/)
@@ -76,7 +76,6 @@ PanlasaLabs leverages Google's Gemini AI to deliver an interactive recipe genera
 | **Frontend Framework** | [Next.js](https://nextjs.org/)                               | 15.5.6  |
 | **React**              | [React](https://react.dev/)                                  | 19.1.0  |
 | **Styling**            | [Tailwind CSS](https://tailwindcss.com/)                     | 4.x     |
-| **UI Components**      | [DaisyUI](https://daisyui.com/)                              | 5.3.7   |
 | **Icons**              | [React Icons](https://react-icons.github.io/react-icons/)    | 5.5.0   |
 | **Backend Services**   | [Supabase](https://supabase.io/) (PostgreSQL, Storage, Auth) | 2.76.1  |
 | **Authentication**     | [NextAuth.js](https://next-auth.js.org/)                     | 4.24.7  |
