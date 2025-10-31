@@ -70,11 +70,12 @@ export function useUserProfile() {
       if (json?.ok && json.user) {
         setUser(json.user);
 
-        // Force session refresh to pull new data from auth
+        // Wait a bit for auth.users to update
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Force session refresh - this triggers jwt callback with trigger="update"
         if (updateSession) {
           console.log("[useUserProfile] Triggering session refresh");
-
-          // This triggers the jwt callback with trigger="update"
           await updateSession({
             user: {
               name: json.user.name,
@@ -83,18 +84,17 @@ export function useUserProfile() {
           });
         }
 
-        // Dispatch event
+        // Wait for session to propagate
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Dispatch event for immediate UI update
         const eventDetail = {
           name: json.user.name ?? undefined,
           image: json.user.avatar_url ?? undefined,
           email: json.user.email ?? undefined,
         };
 
-        console.log(
-          "[useUserProfile] Dispatching event with detail:",
-          eventDetail
-        );
-
+        console.log("[useUserProfile] Dispatching event:", eventDetail);
         window.dispatchEvent(
           new CustomEvent("user-profile-updated", { detail: eventDetail })
         );

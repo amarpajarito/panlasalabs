@@ -1,30 +1,22 @@
 import { NextAuthOptions } from "next-auth";
-import GithubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { createClient } from "@supabase/supabase-js";
 
-// Server-side Supabase client (anon key for auth operations)
-function getSupabaseAnonClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
+const SUPABASE_URL = process.env.SUPABASE_URL!;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Server-side Supabase client (service role for privileged operations)
-function getSupabaseServerClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
+function getServerSupabase() {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
 }
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GithubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -33,127 +25,119 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required");
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
-        const supabase = getSupabaseAnonClient();
+        const supabase = getServerSupabase();
         const { data, error } = await supabase.auth.signInWithPassword({
           email: credentials.email,
           password: credentials.password,
         });
 
-        if (error || !data.user) {
-          console.error("[auth] Credentials failed:", error);
-          throw new Error(error?.message || "Invalid credentials");
-        }
+        if (error || !data?.user) return null;
 
         return {
           id: data.user.id,
           email: data.user.email!,
-          name:
-            data.user.user_metadata?.display_name ||
-            data.user.user_metadata?.full_name ||
-            data.user.email,
-          image: data.user.user_metadata?.avatar_url,
+          name: data.user.user_metadata?.name || data.user.email!,
+          image: data.user.user_metadata?.avatar_url || null,
         };
       },
     }),
   ],
-
   callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider === "github") {
-        const supabase = getSupabaseServerClient();
+    async signIn({ user, account, profile }) {
+      if (!user.email) return false;
 
-        // Check if user exists
-        const { data: existingUser } = await supabase
-          .from("users")
-          .select("id")
-          .eq("email", user.email)
-          .single();
+      const supabase = getServerSupabase();
 
-        if (!existingUser) {
-          // Create new user
-          const { error } = await supabase.from("users").insert({
-            email: user.email,
-            name: user.name,
-            avatar_url: user.image,
-            provider: "github",
-          });
+      // Check if user exists
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", user.email)
+        .maybeSingle();
 
-          if (error) {
-            console.error("[auth] Error creating user:", error);
-          }
+      if (!existingUser) {
+        // Create new user in public.users
+        const { error } = await supabase.from("users").insert({
+          id: user.id,
+          email: user.email,
+          name: user.name || profile?.name || user.email,
+          avatar_url: user.image || (profile as any)?.picture || null,
+          provider: account?.provider || "credentials",
+          auth_provider: account?.provider || "credentials",
+        });
+
+        if (error) {
+          console.error("Error creating user:", error);
+          return false;
         }
       }
+
       return true;
     },
-
-    async jwt({ token, user, account, trigger, session }) {
-      const newToken: any = { ...token };
-
-      // Initial sign-in: set token data
+    async jwt({ token, user, trigger, session }) {
+      // Initial sign in
       if (user) {
-        newToken.email = user.email;
-        newToken.name = user.name;
-        newToken.picture = user.image;
-
-        // Resolve user UUID from public.users table
-        if (account?.provider === "github") {
-          try {
-            const supabase = getSupabaseServerClient();
-            const { data: dbUser } = await supabase
-              .from("users")
-              .select("id")
-              .eq("email", user.email)
-              .single();
-
-            newToken.id = dbUser?.id || user.id;
-          } catch (e) {
-            console.error("[auth] Error resolving user ID:", e);
-            newToken.id = user.id;
-          }
-
-          newToken.provider = "github";
-        } else {
-          newToken.id = user.id;
-        }
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
       }
 
-      // Handle session updates (when updateSession is called)
+      // Handle session updates (from updateSession call)
       if (trigger === "update" && session) {
-        newToken.name = session.user?.name ?? newToken.name;
-        newToken.picture = session.user?.image ?? newToken.picture;
-      }
+        console.log("[jwt callback] Session update triggered:", session);
 
-      // Sync with auth.users metadata on every request
-      if (newToken.id) {
+        // Fetch latest data from auth.users
+        const supabase = getServerSupabase();
         try {
-          const supabase = getSupabaseServerClient();
           const { data: authUser } = await supabase.auth.admin.getUserById(
-            newToken.id as string
+            token.id as string
           );
 
-          if (authUser?.user?.user_metadata) {
-            const meta = authUser.user.user_metadata;
-            // Update token with latest metadata
-            if (meta.display_name) newToken.name = meta.display_name;
-            else if (meta.name) newToken.name = meta.name;
-            else if (meta.full_name) newToken.name = meta.full_name;
+          if (authUser?.user) {
+            const metadata = authUser.user.user_metadata || {};
 
-            if (meta.avatar_url) newToken.picture = meta.avatar_url;
+            // Update token with latest auth.users metadata
+            token.name = metadata.name || metadata.full_name || token.name;
+            token.picture =
+              metadata.avatar_url || metadata.picture || token.picture;
+
+            console.log("[jwt callback] Updated token from auth.users:", {
+              name: token.name,
+              picture: token.picture,
+            });
           }
-        } catch (e) {
-          // Silently fail - don't block auth flow
+
+          // Also fetch from public.users as fallback
+          const { data: publicUser } = await supabase
+            .from("users")
+            .select("name, avatar_url")
+            .eq("id", token.id)
+            .maybeSingle();
+
+          if (publicUser) {
+            // Use public.users data if auth.users didn't have it
+            if (!token.name && publicUser.name) {
+              token.name = publicUser.name;
+            }
+            if (!token.picture && publicUser.avatar_url) {
+              token.picture = publicUser.avatar_url;
+            }
+          }
+        } catch (err) {
+          console.error(
+            "[jwt callback] Error fetching updated user data:",
+            err
+          );
         }
       }
 
-      return newToken;
+      return token;
     },
-
     async session({ session, token }) {
-      if (session.user) {
+      if (token) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
@@ -162,16 +146,12 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-
   pages: {
     signIn: "/login",
-    error: "/login",
   },
-
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-
   secret: process.env.NEXTAUTH_SECRET,
 };
