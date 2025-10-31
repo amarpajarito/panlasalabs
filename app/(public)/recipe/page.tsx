@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import PublicGenerateRecipe from "@/components/features/recipe/PublicGenerateRecipe";
-import AIRecipeChat from "@/components/features/recipe/AIRecipeChat";
+import AIRecipeChat from "@/components/features/recipe/ai-chat/AIRecipeChat";
 import MostPromptedRecipeSection from "@/components/features/recipe/MostPromptedRecipeSection";
 import MustTryRecipesSection from "@/components/features/recipe/MustTryRecipesSection";
 
