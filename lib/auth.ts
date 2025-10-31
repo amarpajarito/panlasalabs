@@ -1,44 +1,21 @@
 import { NextAuthOptions } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { createBrowserClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 
-// Helper function to create Supabase client for auth operations
-function getSupabaseClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
-// Server-side anon client (safe to use for auth password grant).
+// Server-side Supabase client (anon key for auth operations)
 function getSupabaseAnonClient() {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"
-    );
-  }
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
 
-// Server-side Supabase client using the service role key.
-// Use this for privileged operations (inserts/updates) inside server-side
-// callbacks such as NextAuth signIn to avoid RLS blocks.
+// Server-side Supabase client (service role for privileged operations)
 function getSupabaseServerClient() {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  }
-
   return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } }
   );
 }
@@ -60,28 +37,24 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email and password are required");
         }
 
-        // Use a server-capable anon client to perform the password grant.
         const supabase = getSupabaseAnonClient();
-
         const { data, error } = await supabase.auth.signInWithPassword({
           email: credentials.email,
           password: credentials.password,
         });
 
-        // Log the raw response for debugging when credentials fail
-        console.log("[auth] signInWithPassword response:", { data, error });
-
         if (error || !data.user) {
-          // Include error details in the thrown message for NextAuth logs
-          const msg = error?.message || "Invalid credentials";
-          console.error("[auth] Credentials authorize failed:", error);
-          throw new Error(msg);
+          console.error("[auth] Credentials failed:", error);
+          throw new Error(error?.message || "Invalid credentials");
         }
 
         return {
           id: data.user.id,
           email: data.user.email!,
-          name: data.user.user_metadata?.full_name || data.user.email,
+          name:
+            data.user.user_metadata?.display_name ||
+            data.user.user_metadata?.full_name ||
+            data.user.email,
           image: data.user.user_metadata?.avatar_url,
         };
       },
@@ -89,94 +62,91 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       if (account?.provider === "github") {
-        // use the server client for DB writes to bypass RLS policies and the
-        // need for an active Supabase auth session in this context
         const supabase = getSupabaseServerClient();
 
         // Check if user exists
         const { data: existingUser } = await supabase
           .from("users")
-          .select("*")
+          .select("id")
           .eq("email", user.email)
           .single();
 
         if (!existingUser) {
-          // Create user in Supabase. Do NOT use the OAuth provider's numeric
-          // id as the PK (GitHub returns a numeric id like "145326531") since
-          // our `users.id` column is a UUID. Let the DB generate a UUID (or
-          // supply one from the server) instead of inserting the provider id.
-          const payload: any = {
+          // Create new user
+          const { error } = await supabase.from("users").insert({
             email: user.email,
             name: user.name,
+            avatar_url: user.image,
             provider: "github",
-          };
+          });
 
-          if (user.image) payload.avatar_url = user.image;
-
-          try {
-            const { error } = await supabase.from("users").insert(payload);
-            if (error) {
-              // Log but don't block sign-in; fix the DB schema if you want to
-              // persist these fields.
-              console.error("Error creating user:", error);
-            }
-          } catch (err) {
-            console.error("Unexpected error creating user:", err);
+          if (error) {
+            console.error("[auth] Error creating user:", error);
           }
         }
       }
       return true;
     },
 
-    async jwt({ token, user, account }) {
-      // Keep the token minimal and deterministic. On initial sign-in, ensure
-      // the token.id is the application's user UUID (not the OAuth provider
-      // numeric id). For GitHub OAuth we look up the user by email in our
-      // Supabase `users` table and replace the token id with the DB UUID.
+    async jwt({ token, user, account, trigger, session }) {
       const newToken: any = { ...token };
+
+      // Initial sign-in: set token data
       if (user) {
-        // Default: copy fields from NextAuth's user object
         newToken.email = user.email;
         newToken.name = user.name;
         newToken.picture = user.image;
 
-        // If this is a GitHub sign-in (or other OAuth), NextAuth may provide
-        // the provider's numeric id as user.id. Resolve the application
-        // user UUID from our `users` table using the server Supabase client.
+        // Resolve user UUID from public.users table
         if (account?.provider === "github") {
           try {
             const supabase = getSupabaseServerClient();
-            const { data: dbUser, error } = await supabase
+            const { data: dbUser } = await supabase
               .from("users")
               .select("id")
               .eq("email", user.email)
-              .maybeSingle();
+              .single();
 
-            if (!error && dbUser && (dbUser as any).id) {
-              newToken.id = (dbUser as any).id;
-            } else {
-              // Fallback to whatever NextAuth gave us (rare). This avoids
-              // blocking sign-in on unexpected DB issues.
-              newToken.id = user.id;
-            }
+            newToken.id = dbUser?.id || user.id;
           } catch (e) {
-            console.error(
-              "Error resolving Supabase user id in jwt callback:",
-              e
-            );
+            console.error("[auth] Error resolving user ID:", e);
             newToken.id = user.id;
           }
+
+          newToken.provider = "github";
         } else {
-          // Non-OAuth (credentials) paths should already return the application
-          // user id from authorize(), so use that.
           newToken.id = user.id;
         }
       }
 
-      if (account?.provider === "github") {
-        newToken.provider = "github";
+      // Handle session updates (when updateSession is called)
+      if (trigger === "update" && session) {
+        newToken.name = session.user?.name ?? newToken.name;
+        newToken.picture = session.user?.image ?? newToken.picture;
+      }
+
+      // Sync with auth.users metadata on every request
+      if (newToken.id) {
+        try {
+          const supabase = getSupabaseServerClient();
+          const { data: authUser } = await supabase.auth.admin.getUserById(
+            newToken.id as string
+          );
+
+          if (authUser?.user?.user_metadata) {
+            const meta = authUser.user.user_metadata;
+            // Update token with latest metadata
+            if (meta.display_name) newToken.name = meta.display_name;
+            else if (meta.name) newToken.name = meta.name;
+            else if (meta.full_name) newToken.name = meta.full_name;
+
+            if (meta.avatar_url) newToken.picture = meta.avatar_url;
+          }
+        } catch (e) {
+          // Silently fail - don't block auth flow
+        }
       }
 
       return newToken;
