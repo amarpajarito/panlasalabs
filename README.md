@@ -3,175 +3,211 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.5.6-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.1.0-blue)](https://react.dev/)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-green)](https://supabase.io/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-2.76.1-green)](https://supabase.io/)
+[![NextAuth](https://img.shields.io/badge/NextAuth.js-4.24.7-purple)](https://next-auth.js.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
 PanlasaLabs is an intelligent recipe generation platform powered by artificial intelligence. Built with modern web technologies, it provides users with a sophisticated conversational interface to create, customize, and manage culinary recipes through natural language interactions.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [System Requirements](#system-requirements)
-- [Installation Guide](#installation-guide)
+- [System Architecture](#system-architecture)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
 - [Configuration](#configuration)
 - [Running the Application](#running-the-application)
 - [Project Structure](#project-structure)
+- [API Endpoints](#api-endpoints)
 - [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Overview
 
-PanlasaLabs leverages Google's Gemini AI to deliver an interactive recipe generation experience. The platform combines secure authentication, cloud-based data storage, and real-time AI capabilities to help users discover and create personalized recipes.
+PanlasaLabs is a full-stack web application that enables users to generate custom recipes through conversational AI interactions. The platform integrates secure authentication, cloud-based data storage, and real-time AI capabilities powered by Google's Gemini API.
 
-### Key Capabilities
+### Core Features
 
-- Generate custom recipes through conversational AI interactions
-- Refine and iterate on recipe variations based on user preferences
-- Manage user profiles with secure authentication
-- Store and retrieve recipes from a centralized database
-- Access a public gallery of community-generated recipes
+- AI-powered recipe generation with conversational interface
+- User authentication via credentials and GitHub OAuth
+- Recipe management and history tracking
+- Public recipe gallery
+- Profile management with avatar upload (server-side upload to bypass RLS)
+- User feedback and rating system
+- Responsive design with Tailwind CSS
 
-## ✨ Features
+## System Architecture
 
-### Core Functionality
+### Technology Stack
 
-- **AI-Powered Recipe Generation**
-  - Natural language conversation interface with AI chat system
-  - Recipe refinement and variation generation
-  - Context-aware suggestions and modifications
-  - Quick prompt suggestions for faster interactions
-- **User Authentication & Authorization**
-  - Credential-based authentication (email/password)
-  - OAuth 2.0 integration with Google Sign-In
-  - Secure session management via NextAuth.js
-- **Database & Cloud Storage**
-  - PostgreSQL database powered by Supabase
-  - Cloud storage for user avatars and media assets
-  - Real-time data synchronization
-- **User Profile Management**
-  - Editable user information and preferences
-  - Profile picture upload and management
-  - Personal recipe history and favorites
-- **Public Recipe Gallery**
-  - Browse community-generated recipes at `/allrecipes`
-  - View trending and most prompted recipes
-  - Search and filter functionality
-  - Responsive grid layout with recipe cards
-- **Responsive Design**
-  - Mobile-first approach using Tailwind CSS with DaisyUI
-  - Optimized for desktop, tablet, and mobile devices
-  - Accessible UI components
+| Component          | Technology            | Version |
+| ------------------ | --------------------- | ------- |
+| Frontend Framework | Next.js               | 15.5.6  |
+| UI Library         | React                 | 19.1.0  |
+| Language           | TypeScript            | 5       |
+| Styling            | Tailwind CSS          | 4       |
+| Authentication     | NextAuth.js           | 4.24.7  |
+| Database           | Supabase (PostgreSQL) | 2.76.1  |
+| AI Service         | Google Gemini API     | 1.27.0  |
+| Icons              | React Icons           | 5.5.0   |
 
-## 🛠️ Technology Stack
+### Application Architecture
 
-| Category               | Technology                                                   | Version |
-| ---------------------- | ------------------------------------------------------------ | ------- |
-| **Frontend Framework** | [Next.js](https://nextjs.org/)                               | 15.5.6  |
-| **React**              | [React](https://react.dev/)                                  | 19.1.0  |
-| **Styling**            | [Tailwind CSS](https://tailwindcss.com/)                     | 4.x     |
-| **Icons**              | [React Icons](https://react-icons.github.io/react-icons/)    | 5.5.0   |
-| **Backend Services**   | [Supabase](https://supabase.io/) (PostgreSQL, Storage, Auth) | 2.76.1  |
-| **Authentication**     | [NextAuth.js](https://next-auth.js.org/)                     | 4.24.7  |
-| **AI Integration**     | [Google Gemini API](https://ai.google.dev/)                  | 1.27.0  |
-| **Language**           | [TypeScript](https://www.typescriptlang.org/)                | 5.x     |
-| **Package Manager**    | npm/yarn/pnpm                                                | -       |
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                          Client Layer                             │
+│        Next.js 15 App Router + React 19 + Tailwind CSS            │
+└─────────────────────────────┬─────────────────────────────────────┘
+                              │
+                              │
+┌─────────────────────────────▼─────────────────────────────────────┐
+│                       Middleware Layer                            │
+│                                                                   │
+│         • Authentication (NextAuth.js)                            │
+│         • Route Protection                                        │
+│         • Session Management                                      │
+│                                                                   │
+└─────────────────────────────┬─────────────────────────────────────┘
+                              │
+                              │
+┌─────────────────────────────▼─────────────────────────────────────┐
+│                         API Layer                                 │
+│                                                                   │
+│    • /api/auth/*      (NextAuth endpoints)                        │
+│    • /api/ai/*        (Gemini AI integration)                     │
+│    • /api/recipes/*   (Recipe CRUD)                               │
+│    • /api/users/*     (User management)                           │
+│    • /api/feedback/*  (Feedback submission)                       │
+│                                                                   │
+└──────────────────┬───────────────────────┬────────────────────────┘
+                   │                       │
+                   │                       │
+         ┌─────────▼─────────┐   ┌─────────▼──────────┐
+         │ Supabase Services │   │ Google Gemini API  │
+         │                   │   │                    │
+         │ • PostgreSQL DB   │   │ • Recipe Gen       │
+         │ • Storage         │   │ • AI Conversations │
+         │ • Auth            │   │                    │
+         └───────────────────┘   └────────────────────┘
+```
 
-## 💻 System Requirements
+### Authentication Flow
 
-Before beginning the installation process, ensure your development environment meets the following requirements:
+1. **Credential-based Authentication**: User email/password stored in Supabase Auth
+2. **OAuth Authentication**: GitHub Sign-In via NextAuth.js with deterministic UUID generation
+3. **Session Management**: JWT-based sessions with 30-day expiration
+4. **Profile Persistence**: User profile changes are preserved across OAuth logins
+5. **Middleware Protection**: Route-level authentication enforcement
+
+**Important Note on OAuth:** When users sign in with GitHub, their custom profile changes (name, avatar) are loaded from the database, not overwritten by GitHub's profile data. This ensures profile customization persists across sessions.
+
+### Database Schema
+
+**Users Table** (`public.users`)
+
+- `id` (UUID, Primary Key - deterministically generated for OAuth users)
+- `email` (Text, Unique)
+- `name` (Text - preserved across OAuth logins)
+- `first_name` (Text)
+- `last_name` (Text)
+- `avatar_url` (Text - preserved across OAuth logins)
+- `provider` (Text)
+- `auth_provider` (Text)
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
+
+**Recipes Table** (`public.recipes`)
+
+- `id` (UUID, Primary Key)
+- `user_id` (UUID, Foreign Key)
+- `title` (Text)
+- `description` (Text)
+- `ingredients` (JSONB)
+- `instructions` (JSONB)
+- `difficulty` (Text)
+- `prep_time` (Integer)
+- `cook_time` (Integer)
+- `servings` (Integer)
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
+
+**Feedback Table** (`public.feedback`)
+
+- `id` (UUID, Primary Key)
+- `user_id` (UUID, Foreign Key, nullable)
+- `rating` (Integer, 1-5 stars, required)
+- `message` (Text, required)
+- `name` (Text, optional - for display)
+- `avatar_url` (Text, optional - for display)
+- `created_at` (Timestamp)
+
+## Prerequisites
 
 ### Required Software
 
-- **Node.js**: Version 20.0.0 or higher ([Download](https://nodejs.org/))
-- **npm**: Version 9.0.0 or higher (included with Node.js)
-  - _Alternative_: yarn 1.22+ or pnpm 8.0+
-- **Git**: Latest stable version ([Download](https://git-scm.com/))
+- Node.js 20.0.0 or higher
+- npm 9.0.0 or higher (or yarn/pnpm equivalent)
+- Git
 
-### Recommended Tools
+### Required Accounts
 
-- **Code Editor**: Visual Studio Code with recommended extensions:
-  - ESLint
-  - Prettier
-  - Tailwind CSS IntelliSense
-  - TypeScript and JavaScript Language Features
-- **Database Client**: Supabase Studio (web-based) or pgAdmin for database management
+- Supabase account (database and storage)
+- GitHub account (OAuth credentials via GitHub Developer Settings)
+- Google AI Studio account (Gemini API key)
 
-### External Service Accounts
+## Installation
 
-You will need accounts with the following services:
-
-1. **Supabase** - Database and storage backend ([Sign up](https://supabase.com/))
-2. **Google Cloud Platform** - OAuth authentication ([Console](https://console.cloud.google.com/))
-3. **Google AI Studio** - Gemini API access ([Get started](https://ai.google.dev/))
-
-## 📦 Installation Guide
-
-Follow these steps carefully to set up the project on your local development environment.
-
-### Step 1: Clone the Repository
+### 1. Clone Repository
 
 ```bash
-# Clone via HTTPS
-git clone https://github.com/your-username/panlasalabs.git
-
-# Or clone via SSH (if configured)
-git clone git@github.com:your-username/panlasalabs.git
-
-# Navigate to project directory
+git clone https://github.com/amarpajarito/panlasalabs.git
 cd panlasalabs
 ```
 
-### Step 2: Install Dependencies
-
-Install all required packages defined in `package.json`:
+### 2. Install Dependencies
 
 ```bash
-# Using npm
 npm install
-
-# Using yarn
-yarn install
-
-# Using pnpm
-pnpm install
 ```
 
-**Note**: This process may take several minutes depending on your internet connection.
+### 3. Database Setup
 
-### Step 3: Database Setup
-
-#### Configure Supabase Database
-
-1. Log in to your [Supabase Dashboard](https://app.supabase.com/)
-2. Create a new project or select an existing one
-3. Navigate to **SQL Editor**
-4. Execute the provided schema file (if available) or create required tables:
+Execute the following SQL in Supabase SQL Editor:
 
 ```sql
--- Example table structure (adjust based on your actual schema)
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id),
-  username TEXT UNIQUE,
-  full_name TEXT,
+-- ============================================
+-- PANLASALABS DATABASE SETUP - FRESH INSTALL
+-- ============================================
+
+-- Step 1: Create Tables
+-- ============================================
+
+-- Users table
+CREATE TABLE public.users (
+  id UUID PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  first_name TEXT,
+  last_name TEXT,
   avatar_url TEXT,
+  provider TEXT DEFAULT 'credentials',
+  auth_provider TEXT DEFAULT 'credentials',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE recipes (
+-- Recipes table
+CREATE TABLE public.recipes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  ingredients JSONB,
-  instructions JSONB,
+  ingredients JSONB DEFAULT '[]'::jsonb,
+  instructions JSONB DEFAULT '[]'::jsonb,
   difficulty TEXT,
   prep_time INTEGER,
   cook_time INTEGER,
@@ -180,594 +216,704 @@ CREATE TABLE recipes (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE feedback (
+-- Feedback table
+CREATE TABLE public.feedback (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id),
+  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   message TEXT NOT NULL,
+  name TEXT,
+  avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add other necessary tables
+-- Create indexes for better performance
+CREATE INDEX idx_recipes_user_id ON public.recipes(user_id);
+CREATE INDEX idx_recipes_created_at ON public.recipes(created_at DESC);
+CREATE INDEX idx_feedback_user_id ON public.feedback(user_id);
+CREATE INDEX idx_users_email ON public.users(email);
+
+-- Step 2: Enable Row Level Security (RLS)
+-- ============================================
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recipes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+
+-- Step 3: Create RLS Policies
+-- ============================================
+
+-- USERS TABLE POLICIES
+-- Allow users to read their own data
+CREATE POLICY "Users can read own data" ON public.users
+  FOR SELECT
+  USING (auth.uid() = id);
+
+-- Allow users to update their own data
+CREATE POLICY "Users can update own data" ON public.users
+  FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- Allow service role to insert users (for OAuth and registration)
+CREATE POLICY "Service role can insert users" ON public.users
+  FOR INSERT
+  WITH CHECK (true);
+
+-- RECIPES TABLE POLICIES
+-- Allow anyone to read all recipes (public gallery)
+CREATE POLICY "Anyone can read recipes" ON public.recipes
+  FOR SELECT
+  USING (true);
+
+-- Allow authenticated users to insert their own recipes
+CREATE POLICY "Users can insert own recipes" ON public.recipes
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Allow users to update their own recipes
+CREATE POLICY "Users can update own recipes" ON public.recipes
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Allow users to delete their own recipes
+CREATE POLICY "Users can delete own recipes" ON public.recipes
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- FEEDBACK TABLE POLICIES
+-- Allow anyone to insert feedback (even anonymous users)
+CREATE POLICY "Anyone can insert feedback" ON public.feedback
+  FOR INSERT
+  WITH CHECK (true);
+
+-- Allow anyone to read all feedback (for public display)
+CREATE POLICY "Anyone can read all feedback" ON public.feedback
+  FOR SELECT
+  USING (true);
+
+-- Step 4: Setup Storage for Avatars
+-- ============================================
+
+-- Create avatars storage bucket
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'avatars',
+  'avatars',
+  true,
+  5242880, -- 5MB limit
+  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS Policies for avatars bucket
+-- Note: Avatar uploads are handled server-side via API route with service role key
+-- This bypasses RLS and ensures consistent authentication across NextAuth sessions
+
+CREATE POLICY "Anyone can view avatars" ON storage.objects
+  FOR SELECT
+  USING (bucket_id = 'avatars');
+
+CREATE POLICY "Service role can manage avatars" ON storage.objects
+  FOR ALL
+  USING (bucket_id = 'avatars')
+  WITH CHECK (bucket_id = 'avatars');
+
+-- Step 5: Create Helper Functions
+-- ============================================
+
+-- Function to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply trigger to users table
+CREATE TRIGGER update_users_updated_at
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Apply trigger to recipes table
+CREATE TRIGGER update_recipes_updated_at
+  BEFORE UPDATE ON public.recipes
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Step 6: Create Storage Bucket Trigger (Optional but recommended)
+-- ============================================
+-- This ensures the avatars bucket exists even if the INSERT above was skipped
+
+CREATE OR REPLACE FUNCTION ensure_avatar_bucket()
+RETURNS void AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'avatars') THEN
+    INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    VALUES (
+      'avatars',
+      'avatars',
+      true,
+      5242880,
+      ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    );
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Run the function to ensure bucket exists
+SELECT ensure_avatar_bucket();
+
+-- ============================================
+-- SETUP COMPLETE!
+-- ============================================
+-- You can now use the application with proper RLS policies.
+--
+-- KEY POINTS:
+-- • API routes use SUPABASE_SERVICE_ROLE_KEY (bypasses RLS for admin operations)
+-- • Client-side code uses NEXT_PUBLIC_SUPABASE_ANON_KEY (respects RLS)
+-- • Avatar uploads go through /api/storage/upload-avatar (server-side with service role)
+-- • User profiles persist across OAuth logins (name/avatar saved in database)
+-- • GitHub OAuth generates deterministic UUIDs from provider + account ID
 ```
 
-5. Set up **Storage Buckets** for user avatars:
-   - Navigate to Storage → Create bucket → Name: `avatars`
-   - Set appropriate access policies
+**Verification Steps:**
 
-## ⚙️ Configuration
+After running the SQL, verify your setup in Supabase SQL Editor:
 
-### Environment Variables Setup
+```sql
+-- 1. Check all tables exist
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
+AND table_type = 'BASE TABLE'
+ORDER BY table_name;
+-- Expected: feedback, recipes, users
 
-Create a `.env.local` file in the project root directory. This file stores sensitive configuration data and should **never** be committed to version control.
+-- 2. Check RLS is enabled on all tables
+SELECT tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY tablename;
+-- Expected: All should show rowsecurity = true
 
-```bash
-# Create the environment file
-touch .env.local
+-- 3. Check all policies exist
+SELECT tablename, policyname, cmd
+FROM pg_policies
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
+-- Expected: 9 policies total (2 users, 4 recipes, 2 feedback, 1 storage)
+
+-- 4. Check storage bucket exists and is configured correctly
+SELECT id, name, public, file_size_limit, allowed_mime_types
+FROM storage.buckets
+WHERE id = 'avatars';
+-- Expected: 1 row with 5MB limit and allowed image types
+
+-- 5. Check storage policies
+SELECT policyname, operation
+FROM storage.policies
+WHERE bucket_id = 'avatars'
+ORDER BY policyname;
+-- Expected: 2 policies (view and manage)
+
+-- 6. Check indexes exist
+SELECT indexname, tablename
+FROM pg_indexes
+WHERE schemaname = 'public'
+ORDER BY tablename, indexname;
+-- Expected: Indexes on user_id, created_at, email
+
+-- 7. Check triggers exist
+SELECT trigger_name, event_object_table, action_statement
+FROM information_schema.triggers
+WHERE trigger_schema = 'public'
+ORDER BY event_object_table;
+-- Expected: Triggers for updated_at on users and recipes
 ```
 
-Add the following variables with your actual credentials:
+**Important Notes:**
+
+- ✅ API routes use `SUPABASE_SERVICE_ROLE_KEY` which bypasses RLS for admin operations
+- ✅ Client-side operations use `NEXT_PUBLIC_SUPABASE_ANON_KEY` which respects RLS policies
+- ✅ RLS policies ensure users can only modify their own data
+- ✅ Avatar uploads use server-side API route (`/api/storage/upload-avatar`) with service role key
+- ✅ Storage policies allow public viewing but restrict uploads to authenticated requests via API
+- ✅ Profile changes (name, avatar) persist across OAuth login sessions
+
+## Configuration
+
+### Environment Variables
+
+Create `.env.local` in the project root:
 
 ```env
-# ========================================
-# Supabase Configuration
-# ========================================
-# Your Supabase project URL (found in Project Settings → API)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+# Supabase Configuration (Required for both server and client)
+SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-from-supabase
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-from-supabase
 
-# Supabase anonymous public key (found in Project Settings → API)
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+# Storage Configuration
+NEXT_PUBLIC_AVATAR_BUCKET=avatars
 
-# ========================================
-# NextAuth.js Configuration
-# ========================================
-# Google OAuth 2.0 Client ID (from Google Cloud Console)
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-
-# Google OAuth 2.0 Client Secret (from Google Cloud Console)
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# NextAuth secret key - generate using: openssl rand -base64 32
-AUTH_SECRET=your-generated-secret-key-minimum-32-characters
-
-# Application URL (change for production deployment)
+# NextAuth Configuration (Required for authentication)
+GITHUB_CLIENT_ID=your-github-oauth-client-id
+GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
+NEXTAUTH_SECRET=generate-with-openssl-rand-base64-32
 NEXTAUTH_URL=http://localhost:3000
 
-# ========================================
-# Google Gemini AI Configuration
-# ========================================
-# Gemini API key (from Google AI Studio)
-GEMINI_API_KEY=your-gemini-api-key
+# Google Gemini AI (Required for recipe generation)
+GEMINI_API_KEY=your-gemini-api-key-from-google-ai-studio
+GEMINI_MODEL=gemini-1.5-flash
 ```
 
-### Obtaining Required API Keys
+**Environment Variable Breakdown:**
 
-#### 1. Supabase Credentials
+| Variable                        | Purpose                        | Usage                         |
+| ------------------------------- | ------------------------------ | ----------------------------- |
+| `SUPABASE_URL`                  | Supabase project URL           | Server-side API routes        |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Same URL, client-accessible    | Client-side code              |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Admin key, bypasses RLS        | Server-side only (API routes) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public key, respects RLS       | Client-side operations        |
+| `NEXT_PUBLIC_AVATAR_BUCKET`     | Storage bucket name            | Avatar uploads                |
+| `GITHUB_CLIENT_ID`              | GitHub OAuth app ID            | OAuth authentication          |
+| `GITHUB_CLIENT_SECRET`          | GitHub OAuth secret            | OAuth authentication          |
+| `NEXTAUTH_SECRET`               | JWT signing key (min 32 chars) | Session encryption            |
+| `NEXTAUTH_URL`                  | Application base URL           | Authentication callbacks      |
+| `GEMINI_API_KEY`                | Google AI API key              | Recipe generation             |
+| `GEMINI_MODEL`                  | Gemini model version           | AI model selection            |
+
+**⚠️ Security Notes:**
+
+- `SUPABASE_SERVICE_ROLE_KEY` has **full database access** - keep it secret, never expose to client
+- `NEXTAUTH_SECRET` should be a **random 32+ character string** - generate with OpenSSL
+- Never commit `.env.local` to version control (already in `.gitignore`)
+
+### Obtaining Credentials
+
+#### Supabase
 
 1. Navigate to [Supabase Dashboard](https://app.supabase.com/)
-2. Select your project
-3. Go to **Settings** → **API**
-4. Copy the following:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **Project API keys** → `anon` `public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+2. Select project → Settings → API
+3. Copy:
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_URL`
+   - `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` (Keep this secret!)
 
-#### 2. Google OAuth Credentials
+**Important:** The service role key has full database access and bypasses Row Level Security.
 
-1. Visit [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Navigate to **APIs & Services** → **Credentials**
-4. Click **Create Credentials** → **OAuth client ID**
-5. Configure OAuth consent screen (if first time)
-6. Select **Web application** as application type
-7. Add authorized redirect URIs:
-   ```
-   http://localhost:3000/api/auth/callback/google
-   https://yourdomain.com/api/auth/callback/google  # For production
-   ```
-8. Copy **Client ID** and **Client Secret**
+#### GitHub OAuth
 
-#### 3. Google Gemini API Key
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "OAuth Apps" → "New OAuth App"
+3. Fill in application details:
+   - **Application name**: PanlasaLabs (or your choice)
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+4. Click "Register application"
+5. Copy the **Client ID** → `GITHUB_CLIENT_ID`
+6. Click "Generate a new client secret" → Copy the secret → `GITHUB_CLIENT_SECRET`
 
-1. Go to [Google AI Studio](https://aistudio.google.com/)
-2. Click **Get API key** in the top navigation
-3. Create a new API key or use existing
-4. Copy the generated API key
+**Important Notes:**
 
-#### 4. Generate AUTH_SECRET
+- For production, update your GitHub OAuth app with production callback URL (e.g., `https://yourdomain.com/api/auth/callback/github`)
+- GitHub returns numeric user IDs, but our system generates deterministic UUIDs from them
+- User profile changes (name, avatar) are saved to the database and preserved across logins
+- GitHub profile data is only used for initial account creation, not for subsequent logins
 
-Run the following command in your terminal:
+#### Google Gemini API
+
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Click "Get API Key" → Create API key
+3. Copy the generated key → `GEMINI_API_KEY`
+4. Use model name: `gemini-1.5-flash` → `GEMINI_MODEL`
+
+**Model Options:**
+
+- `gemini-1.5-flash` - Fast, cost-effective (recommended for development)
+- `gemini-1.5-pro` - More capable, higher quality responses
+- `gemini-2.0-flash-exp` - Experimental, latest features
+
+#### Generate NEXTAUTH_SECRET
+
+Run this command in your terminal:
 
 ```bash
 openssl rand -base64 32
 ```
 
-Copy the output and use it as your `AUTH_SECRET` value.
+Or use Node.js:
 
-## 🚀 Running the Application
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Copy the output → `NEXTAUTH_SECRET`
+
+**Why 32+ characters?** NextAuth.js requires a minimum of 32 characters for secure JWT token encryption.
+
+## Running the Application
 
 ### Development Mode
 
-Start the development server with Turbopack enabled for faster compilation:
-
 ```bash
-# Using npm
 npm run dev
-
-# Using yarn
-yarn dev
-
-# Using pnpm
-pnpm dev
 ```
 
-The application will be available at **http://localhost:3000**
+Application will start on `http://localhost:3000` (or `http://localhost:3001` if port 3000 is in use)
 
-**Development Features:**
+**First Run Checklist:**
 
-- Hot module replacement (HMR) with Turbopack
-- Detailed error messages
-- Source maps for debugging
-- React Developer Tools support
-- Fast refresh for instant updates
+- ✅ Database tables created (run SQL from Step 3)
+- ✅ `.env.local` file created with all required variables
+- ✅ GitHub OAuth app configured with correct callback URL
+- ✅ Supabase service role key added (required for API routes)
+- ✅ Gemini API key is valid and has quota
+
+**Testing the Setup:**
+
+1. Visit `http://localhost:3000`
+2. Click "Sign Up" and create an account
+3. Try logging in with GitHub OAuth
+4. Upload a profile avatar
+5. Change your display name
+6. Generate a recipe using AI
+7. Submit feedback
+
+If any step fails, check the [Troubleshooting](#troubleshooting) section below.
 
 ### Production Build
 
-Create an optimized production build:
-
 ```bash
-# Build the application (with Turbopack)
 npm run build
-
-# Start the production server
 npm run start
 ```
 
 ### Available Scripts
 
 ```bash
-npm run dev          # Start development server with Turbopack
-npm run build        # Create production build with Turbopack
-npm run start        # Start production server
-npm run lint         # Run ESLint code analysis
+npm run dev     # Start development server with Turbopack
+npm run build   # Create production build
+npm run start   # Start production server
+npm run lint    # Run ESLint
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 panlasalabs/
-├── .env.local                    # Environment variables (not in repo)
-├── .git/                         # Git repository
-├── .gitignore                    # Git ignore rules
-├── .next/                        # Next.js build output
-├── app/                          # Next.js 15 app directory
-│   ├── (auth)/                   # Auth route group
-│   │   ├── layout.tsx           # Auth layout wrapper
+├── app/
+│   ├── (auth)/              # Authentication routes
 │   │   ├── login/
-│   │   │   └── page.tsx         # Login page
-│   │   ├── profile/
-│   │   │   └── page.tsx         # User profile page
-│   │   └── signup/
-│   │       └── page.tsx         # Sign up page
-│   ├── (public)/                # Public route group
-│   │   ├── layout.tsx           # Public layout wrapper
-│   │   ├── page.tsx             # Home page
+│   │   ├── signup/
+│   │   └── profile/
+│   ├── (public)/            # Public routes
+│   │   ├── page.tsx         # Home
 │   │   ├── about/
-│   │   │   └── page.tsx         # About page
 │   │   ├── allrecipes/
-│   │   │   └── page.tsx         # All recipes gallery
 │   │   ├── contact/
-│   │   │   └── page.tsx         # Contact page
 │   │   └── recipe/
-│   │       └── page.tsx         # Recipe page
-│   ├── api/                     # API routes
-│   │   ├── ai/
-│   │   │   ├── generate/
-│   │   │   │   └── route.ts     # AI recipe generation endpoint
-│   │   │   └── prompted/
-│   │   │       └── route.ts     # AI prompted recipes endpoint
-│   │   ├── auth/
-│   │   │   └── [...nextauth]/
-│   │   │       └── route.ts     # NextAuth.js configuration
-│   │   ├── feedback/
-│   │   │   └── route.ts         # Feedback submission endpoint
-│   │   ├── recipes/
-│   │   │   └── [id]/
-│   │   │       └── route.ts     # Recipe CRUD operations
-│   │   ├── storage/
-│   │   │   └── create-avatar-bucket/
-│   │   │       └── route.ts     # Avatar storage management
-│   │   └── users/
-│   │       ├── route.ts         # User operations
-│   │       ├── history/
-│   │       │   └── route.ts     # User recipe history
-│   │       └── profile/
-│   │           └── route.ts     # Profile management
-│   ├── favicon.ico              # Site favicon
-│   ├── globals.css              # Global CSS styles
-│   ├── layout.tsx               # Root layout component
-│   └── providers.tsx            # Context providers wrapper
-├── components/                  # Reusable React components
-│   ├── auth/
-│   │   ├── AuthFormContainer.tsx    # Auth form wrapper
-│   │   ├── LoginSection.tsx         # Login form section
-│   │   ├── SignupSection.tsx        # Signup form section
-│   │   ├── SocialButtons.tsx        # OAuth buttons
-│   │   └── TextInput.tsx            # Input field component
-│   ├── features/
+│   └── api/                 # API routes
+│       ├── auth/            # NextAuth endpoints
+│       ├── ai/              # AI generation endpoints
+│       ├── recipes/         # Recipe CRUD
+│       ├── users/           # User management
+│       │   ├── profile/     # Profile update (PATCH/GET)
+│       │   └── history/     # User recipe history
+│       ├── feedback/        # Feedback submission (POST/GET)
+│       └── storage/         # File storage
+│           ├── upload-avatar/    # Server-side avatar upload
+│           └── create-avatar-bucket/  # Bucket creation
+├── components/
+│   ├── auth/                # Authentication components
+│   ├── features/            # Feature-specific components
 │   │   ├── about/
-│   │   │   ├── AboutCTASection.tsx
-│   │   │   ├── AboutHeroSection.tsx
-│   │   │   ├── StorySection.tsx
-│   │   │   ├── TeamSection.tsx
-│   │   │   └── ValuesSection.tsx
 │   │   ├── contact/
-│   │   │   ├── ContactFormSection.tsx
-│   │   │   ├── ContactHeroSection.tsx
-│   │   │   ├── FAQSection.tsx
-│   │   │   └── FeedbackSection.tsx
 │   │   ├── home/
-│   │   │   ├── AIRecipeGeneratorSection.tsx
-│   │   │   ├── FeatureCard.tsx
-│   │   │   ├── FeedbackReviewsSection.tsx
-│   │   │   ├── HeroSection.tsx
-│   │   │   ├── HowItWorksSection.tsx
-│   │   │   ├── RecipeCard.tsx
-│   │   │   ├── ReviewCard.tsx
-│   │   │   ├── TrendingRecipeSection.tsx
-│   │   │   └── WhatWeDoSection.tsx
+│   │   ├── profile/
 │   │   └── recipe/
-│   │       ├── ai-chat/          # AI chat implementation
-│   │       │   ├── AIRecipeChat.tsx
-│   │       │   └── components/
-│   │       │       ├── ChatHeader.tsx
-│   │       │       ├── MessageList.tsx
-│   │       │       ├── MessageBubble.tsx
-│   │       │       ├── LoadingIndicator.tsx
-│   │       │       ├── QuickPrompts.tsx
-│   │       │       ├── ChatInput.tsx
-│   │       │       └── RecipePanel.tsx
-│   │       ├── AllRecipesSection.tsx
-│   │       ├── DifficultyBadge.tsx
-│   │       ├── GenerateRecipeSection.tsx
-│   │       ├── MostPromptedRecipeSection.tsx
-│   │       ├── MustTryRecipesSection.tsx
-│   │       ├── PublicGenerateRecipe.tsx
-│   │       └── RecipeCard.tsx
-│   └── layout/
-│       ├── Footer.tsx               # Site footer
-│       ├── NavWrapper.tsx           # Navigation wrapper
-│       ├── PrivateNavbar.tsx        # Authenticated navbar
-│       └── PublicNavbar.tsx         # Public navbar
-├── hooks/                       # Custom React hooks
-│   ├── useRecipeHistory.ts      # Recipe history management
-│   ├── useScrollManagement.ts   # Scroll behavior
-│   └── useRecipeEvents.ts       # Recipe event handling
-├── lib/                         # Utility functions and configs
-│   ├── auth.ts                  # Auth utilities
+│   └── layout/              # Layout components
+├── hooks/                   # Custom React hooks
+├── lib/
+│   ├── auth.ts              # NextAuth configuration
 │   └── supabase/
-│       └── client.ts            # Supabase client initialization
-├── middleware.ts                # Next.js middleware
-├── next-env.d.ts               # Next.js TypeScript declarations
-├── next.config.ts              # Next.js configuration
-├── package-lock.json           # Dependency lock file
-├── package.json                # Project dependencies
-├── postcss.config.mjs          # PostCSS configuration
-├── public/                     # Static assets
-│   └── images/
-│       ├── gemini-logo.svg
-│       ├── logo.svg
-│       ├── testimonial-user-logo.png
-│       ├── about/
-│       │   ├── Aaron San Pedro.png
-│       │   ├── about-1.jpg
-│       │   ├── Amar Pajarito.png
-│       │   └── Jae Gatmaitan.png
-│       ├── home/
-│       │   ├── hero-1.jpg
-│       │   ├── hero-2.jpg
-│       │   ├── hero-3.jpg
-│       │   └── hero-4.jpg
-│       └── recipe/
-│           ├── Adobo.png
-│           ├── Bagnet.png
-│           ├── BicolExpress.jpg
-│           ├── ChickenInasal.jpeg
-│           ├── HaloHalo.jpg
-│           ├── Kare-Kare.png
-│           ├── LumpiaShanghai.jpg
-│           ├── PancitBihon.png
-│           ├── recipe-1.png
-│           ├── recipe-2.png
-│           ├── recipe-3.png
-│           ├── recipe-4.png
-│           ├── Sinigang.png
-│           └── Sisig.png
-├── README.md                   # This file
-├── tsconfig.json              # TypeScript configuration
-├── types/                     # TypeScript type definitions
-│   ├── chat.ts                # Chat-related types
-│   ├── next-auth.d.ts         # NextAuth type extensions
-│   ├── recipe.ts              # Recipe types
-│   └── user.ts                # User types
-├── utils/                     # Utility helpers
-│   └── recipe/
-│       └── recipeNormalizer.ts # Recipe data normalization
-└── node_modules/              # Dependencies (not tracked)
+│       └── client.ts        # Supabase client
+├── types/                   # TypeScript definitions
+├── utils/                   # Utility functions
+├── middleware.ts            # Next.js middleware
+├── next.config.ts           # Next.js configuration
+└── package.json             # Dependencies
 ```
 
-### Key Directories Explained
+## API Endpoints
 
-- **`app/`**: Next.js 15 App Router with route groups for organized routing
-- **`components/`**: Organized into `auth/`, `features/`, and `layout/` for better separation
-- **`hooks/`**: Custom React hooks for shared logic
-- **`lib/`**: Configuration and initialization files for external services
-- **`types/`**: TypeScript type definitions for type safety
-- **`utils/`**: Helper functions and utilities
-- **`public/images/`**: Static image assets organized by section
+### Authentication
 
-## 🌐 Deployment
+- `POST /api/auth/signin` - Sign in
+- `POST /api/auth/signup` - Sign up
+- `GET /api/auth/session` - Get session
+- `POST /api/auth/signout` - Sign out
 
-### Vercel Deployment (Recommended)
+### AI Generation
 
-PanlasaLabs is optimized for deployment on [Vercel](https://vercel.com/), the platform created by Next.js developers.
+- `POST /api/ai/generate` - Generate recipe from prompt
+- `GET /api/ai/prompted` - Get most prompted recipes
 
-#### Quick Deploy
+### Recipes
 
-1. Push your code to GitHub, GitLab, or Bitbucket
-2. Visit [Vercel Dashboard](https://vercel.com/new)
-3. Import your repository
-4. Configure environment variables from `.env.local`
-5. Click **Deploy**
+- `GET /api/recipes` - List recipes
+- `POST /api/recipes` - Create recipe
+- `GET /api/recipes/[id]` - Get recipe by ID
+- `PUT /api/recipes/[id]` - Update recipe
+- `DELETE /api/recipes/[id]` - Delete recipe
 
-#### Manual Configuration
+### Users
 
-```bash
-# Install Vercel CLI
-npm install -g vercel
+- `GET /api/users/profile` - Get user profile (requires authentication)
+- `PATCH /api/users/profile` - Update user profile (requires authentication)
+- `GET /api/users/history` - Get recipe history (requires authentication)
 
-# Deploy from your terminal
-vercel
+### Storage
 
-# Deploy to production
-vercel --prod
-```
+- `POST /api/storage/upload-avatar` - Upload avatar (server-side, bypasses RLS)
+- `POST /api/storage/create-avatar-bucket` - Create avatars bucket (admin)
+
+### Feedback
+
+- `POST /api/feedback` - Submit feedback (anonymous or authenticated)
+- `GET /api/feedback` - Get all feedback (enriched with user data)
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push code to GitHub
+2. Import repository in [Vercel Dashboard](https://vercel.com/new)
+3. Configure environment variables
+4. Deploy
 
 ### Environment Variables for Production
 
-Ensure all environment variables are properly configured in your deployment platform:
+Update these variables for production deployment:
 
-- Update `NEXTAUTH_URL` to your production domain
-- Add production Google OAuth redirect URI
-- Verify all API keys are production-ready
-- Enable appropriate CORS settings in Supabase
-- Configure proper Row Level Security (RLS) policies
+```env
+# Production URLs
+NEXTAUTH_URL=https://yourdomain.com
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 
-### Build Optimization
+# Keep these secret (use Vercel environment variables)
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+GITHUB_CLIENT_SECRET=your-github-secret
+NEXTAUTH_SECRET=your-nextauth-secret
+GEMINI_API_KEY=your-gemini-key
+```
 
-Next.js 15 with Turbopack provides significant performance improvements:
+**Production Checklist:**
 
-- Faster cold starts
-- Improved incremental builds
-- Better memory usage
-- Optimized production bundles
+- ✅ Update GitHub OAuth app with production callback URL: `https://yourdomain.com/api/auth/callback/github`
+- ✅ Enable CORS in Supabase for your production domain
+- ✅ Set all environment variables in Vercel dashboard
+- ✅ Ensure RLS policies are properly configured
+- ✅ Test authentication flow in production
+- ✅ Verify avatar uploads work (server-side route)
+- ✅ Check Gemini API quota and rate limits
 
-### Other Deployment Options
-
-- **Netlify**: Supports Next.js with build plugins
-- **AWS Amplify**: Full-stack deployment option
-- **Digital Ocean App Platform**: Container-based deployment
-- **Self-hosted**: Use `npm run build` and `npm run start` with a Node.js server
-
-## 🐛 Troubleshooting
-
-### Common Issues and Solutions
-
-#### Installation Issues
-
-**Problem**: `npm install` fails with permission errors
+### Manual Deployment
 
 ```bash
-# Solution: Clear npm cache and reinstall
+npm install -g vercel
+vercel --prod
+```
+
+## Troubleshooting
+
+### Installation Issues
+
+**npm install fails**
+
+```bash
 npm cache clean --force
 rm -rf node_modules package-lock.json
 npm install
 ```
 
-**Problem**: Turbopack build errors
+**Turbopack build errors**
 
 ```bash
-# Clear Next.js cache
 rm -rf .next
 npm run dev
 ```
 
-#### Authentication Issues
+### Authentication Issues
 
-**Problem**: Google OAuth redirect not working
+**GitHub OAuth redirect not working**
 
-- Verify redirect URI matches exactly in Google Cloud Console
-- Check `NEXTAUTH_URL` is set correctly
-- Ensure OAuth consent screen is published (not in testing)
+1. Verify callback URL in GitHub OAuth app matches exactly:
+   - Development: `http://localhost:3000/api/auth/callback/github`
+   - Production: `https://yourdomain.com/api/auth/callback/github`
+2. Check `NEXTAUTH_URL` in `.env.local` matches your current URL
+3. Ensure `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are correct
+4. Clear browser cookies and try again
 
-**Problem**: NextAuth session not persisting
+**Session not persisting**
 
-- Verify `AUTH_SECRET` is properly set and sufficiently complex
-- Check browser cookies are enabled
-- Clear browser cache and cookies
-- Ensure NextAuth version 4.24.7 compatibility
+1. Verify `NEXTAUTH_SECRET` is set and is **at least 32 characters**:
+   ```bash
+   openssl rand -base64 32
+   ```
+2. Clear browser cookies (Application → Cookies in DevTools)
+3. Restart dev server after changing `NEXTAUTH_SECRET`
+4. Check browser console for NextAuth errors
 
-#### Database Connection Issues
+**"You must be logged in to upload an avatar" error**
 
-**Problem**: Cannot connect to Supabase
+This error now should **NOT occur** because:
 
-- Verify `NEXT_PUBLIC_SUPABASE_URL` format is correct
-- Check `NEXT_PUBLIC_SUPABASE_ANON_KEY` is the public `anon` key
-- Ensure project is not paused in Supabase dashboard
-- Check Row Level Security (RLS) policies if queries fail
-- Verify Supabase client version compatibility (2.76.1)
+- Avatar uploads use server-side API route (`/api/storage/upload-avatar`)
+- The route checks NextAuth session (not Supabase Auth session)
+- Upload happens server-side with service role key (bypasses RLS)
 
-#### API Issues
+If you still see this error:
 
-**Problem**: Gemini API requests failing
+1. Ensure you're logged in (check navbar shows your name)
+2. Try logging out and back in to refresh session
+3. Check browser console for network errors
+4. Verify `SUPABASE_SERVICE_ROLE_KEY` is set in `.env.local`
 
-- Verify `GEMINI_API_KEY` is valid and active
-- Check API quota limits in Google AI Studio
-- Ensure API is enabled for your project
-- Review rate limiting and implement backoff strategies
-- Check @google/genai package version (1.27.0)
+### Database Issues
 
-#### Build Errors
+**Cannot connect to Supabase**
 
-**Problem**: Production build fails
+1. Verify environment variables in `.env.local`:
+   ```env
+   SUPABASE_URL=https://xxxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
+   SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+   ```
+2. Check if Supabase project is active (not paused)
+3. Verify API keys are correct (from Project Settings → API)
+4. Restart dev server after adding/changing environment variables
+
+**Row Level Security (RLS) policy violation**
+
+If you encounter "new row violates row-level security policy" errors:
+
+1. **Verify all environment variables are set:**
+
+   - `SUPABASE_URL` (server-side)
+   - `SUPABASE_SERVICE_ROLE_KEY` (server-side, bypasses RLS)
+   - `NEXT_PUBLIC_SUPABASE_URL` (client-side)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (client-side, respects RLS)
+
+2. **Check policies exist:**
+
+   ```sql
+   SELECT tablename, policyname, cmd
+   FROM pg_policies
+   WHERE schemaname = 'public'
+   ORDER BY tablename, policyname;
+   ```
+
+   Should return 9 policies (2 users, 4 recipes, 2 feedback, 1 storage)
+
+3. **Verify storage policies:**
+
+   ```sql
+   SELECT policyname, operation
+   FROM storage.policies
+   WHERE bucket_id = 'avatars';
+   ```
+
+   Should return 2 policies (view and manage)
+
+4. **For avatar upload issues specifically:**
+   - Avatar uploads now use `/api/storage/upload-avatar` (server-side API route)
+   - This route uses `SUPABASE_SERVICE_ROLE_KEY` which bypasses RLS
+   - Ensure you're logged in (NextAuth session) before uploading
+   - Check browser console for detailed error messages
+
+**Common RLS Solutions:**
+
+| Error                                                             | Solution                                                                            |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| "new row violates row-level security policy" on `storage.objects` | Avatar uploads now go through API route - ensure `SUPABASE_SERVICE_ROLE_KEY` is set |
+| "new row violates row-level security policy" on `users`           | Service role policy should allow inserts - verify policy exists                     |
+| "authentication required"                                         | Check NextAuth session is active - try logging out and back in                      |
+
+**Profile changes not persisting after logout**
+
+This is now **FIXED**. The issue was that OAuth logins were overwriting saved profile data with GitHub's profile.
+
+**How it works now:**
+
+- When you sign in with GitHub for the first time, your GitHub profile data is used
+- When you change your name/avatar in profile settings, it's saved to the database
+- On subsequent GitHub logins, your **saved database data** is used, not GitHub's data
+- Your custom profile changes persist across all future logins
+
+**To verify the fix:**
+
+1. Change your name in profile settings
+2. Log out completely
+3. Log back in with GitHub
+4. Your custom name should still appear (not the GitHub name)
+
+**Email verification not working**
+
+- Check Supabase Dashboard → Authentication → Email Templates
+- Ensure SMTP is configured (or use Supabase's default email service)
+- For development: Disable email confirmation in Auth Settings
+- Check Supabase logs for email delivery issues
+
+### API Issues
+
+**Gemini API failing**
+
+- Verify `GEMINI_API_KEY` is valid
+- Check API quota in Google AI Studio
+- Review rate limits
+
+**Build fails**
 
 ```bash
-# Check for TypeScript errors
 npm run lint
-
-# Verify all dependencies are installed
-npm install
-
-# Clear Next.js cache and rebuild
 rm -rf .next
 npm run build
 ```
 
-**Problem**: React 19 compatibility issues
+### Common Error Messages
 
-- Ensure all packages support React 19.1.0
-- Check for peer dependency warnings
-- Update incompatible packages
+| Error                                            | Cause                           | Solution                                                  |
+| ------------------------------------------------ | ------------------------------- | --------------------------------------------------------- |
+| `Module not found`                               | Missing dependencies            | Run `npm install`                                         |
+| `Authentication failed`                          | Invalid credentials or env vars | Check `.env.local` has all required variables             |
+| `Database connection error`                      | Wrong Supabase URL/keys         | Verify Supabase credentials from dashboard                |
+| `new row violates row-level security policy`     | RLS blocking operation          | Use service role key in API routes; verify policies exist |
+| `You must be logged in to upload an avatar`      | Session not detected            | Fixed - should not occur with current implementation      |
+| `API quota exceeded`                             | Gemini API limit reached        | Check quota in Google AI Studio                           |
+| `NEXTAUTH_SECRET must be at least 32 characters` | Secret too short                | Generate with `openssl rand -base64 32`                   |
+| `Bucket not found`                               | Avatar bucket doesn't exist     | Run storage setup SQL or use bucket creation endpoint     |
+| `GitHub OAuth user ID must be UUID`              | UUID type mismatch              | Fixed - deterministic UUID generation now implemented     |
 
-#### Styling Issues
+### Support Resources
 
-**Problem**: Tailwind CSS classes not working
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Supabase Documentation](https://supabase.com/docs)
+- [NextAuth.js Documentation](https://next-auth.js.org/)
+- [GitHub Issues](https://github.com/amarpajarito/panlasalabs/issues)
 
-- Verify Tailwind CSS 4.x configuration
-- Check DaisyUI theme settings
-- Clear browser cache
-- Rebuild the project
+---
 
-### Getting Help
+## License
 
-If you encounter issues not covered here:
+MIT License. See LICENSE file for details.
 
-1. Check the [Next.js 15 Documentation](https://nextjs.org/docs)
-2. Review [Supabase Documentation](https://supabase.com/docs)
-3. Check [React 19 Documentation](https://react.dev/)
-4. Search existing [GitHub Issues](https://github.com/your-username/panlasalabs/issues)
-5. Create a new issue with:
-   - Detailed problem description
-   - Steps to reproduce
-   - Environment information (Node.js version, OS, etc.)
-   - Error messages or logs
-   - Package versions
+## Team
 
-## 🤝 Contributing
-
-Contributions are welcome and appreciated! To contribute to PanlasaLabs:
-
-### Contribution Process
-
-1. **Fork the repository**
-
-   ```bash
-   # Click "Fork" on GitHub, then clone your fork
-   git clone https://github.com/your-username/panlasalabs.git
-   ```
-
-2. **Create a feature branch**
-
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-3. **Make your changes**
-
-   - Follow existing code style and conventions
-   - Write clear, descriptive commit messages
-   - Add tests if applicable
-   - Ensure TypeScript types are properly defined
-
-4. **Commit your changes**
-
-   ```bash
-   git add .
-   git commit -m "feat: descriptive commit message"
-   ```
-
-5. **Push to your fork**
-
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-6. **Open a Pull Request**
-   - Provide a clear description of changes
-   - Reference any related issues
-   - Wait for code review
-
-### Coding Standards
-
-- Follow the existing code style
-- Use TypeScript for type safety (TypeScript 5.x)
-- Write meaningful variable and function names
-- Comment complex logic
-- Keep components small and focused
-- Use React 19 best practices
-- Run linting before committing: `npm run lint`
-- Utilize route groups for organized routing
-- Follow Next.js 15 App Router conventions
-
-### Commit Message Format
-
-Follow conventional commits:
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `style:` Code style changes (formatting, etc.)
-- `refactor:` Code refactoring
-- `test:` Adding or updating tests
-- `chore:` Maintenance tasks
-
-### Areas for Contribution
-
-- 🐛 Bug fixes and issue resolution
-- ✨ New features and enhancements
-- 📚 Documentation improvements
-- 🎨 UI/UX enhancements with DaisyUI
-- ✅ Test coverage expansion
-- 🌐 Internationalization (i18n)
-- ♿ Accessibility improvements
-- 🚀 Performance optimizations
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## 👥 Team
-
-### Project Lead - Full Stack Developer
-
-- **Amar Pajarito** - Lead Developer & Architecture
-
-### UI/UX Designers
-
+- **Amar Pajarito** - Lead/Full-Stack Developer
 - **Jae Gatmaitan** - UI/UX Designer
 - **Aaron San Pedro** - UI/UX Designer
-
-## 📞 Contact & Support
-
-- **Project Repository**: [GitHub](https://github.com/your-username/panlasalabs)
-- **Issue Tracker**: [GitHub Issues](https://github.com/your-username/panlasalabs/issues)
-- **Documentation**: [Wiki](https://github.com/your-username/panlasalabs/wiki)
-
-## 🙏 Acknowledgments
-
-- [Next.js](https://nextjs.org/) - React framework with App Router
-- [React](https://react.dev/) - UI library
-- [Supabase](https://supabase.io/) - Backend infrastructure
-- [Google Gemini](https://ai.google.dev/) - AI capabilities
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [NextAuth.js](https://next-auth.js.org/) - Authentication solution
-- [React Icons](https://react-icons.github.io/react-icons/) - Icon library
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
