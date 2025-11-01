@@ -28,8 +28,7 @@ JSON Schema (all fields required, use null if unavailable):
   "cook_time": "30 minutes",
   "servings": "4",
   "cuisine": "Filipino",
-  "difficulty": "Easy|Medium|Hard",
-  "image_url": null
+  "difficulty": "Easy|Medium|Hard"
 }
 
 Ingredient Format Rules:
@@ -72,8 +71,7 @@ Example for "sisig":
   "cook_time": "60 minutes",
   "servings": "4-6",
   "cuisine": "Filipino",
-  "difficulty": "Medium",
-  "image_url": null
+  "difficulty": "Medium"
 }`;
 
 // Extract JSON from model output
@@ -195,23 +193,6 @@ function normalizeDifficulty(val: any): string | null {
   return null;
 }
 
-// Validate image URL
-async function validateImageUrl(url: any): Promise<string | null> {
-  if (!url || typeof url !== "string") return null;
-  try {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) return null;
-
-    const res = await fetch(url, { method: "HEAD" });
-    if (!res.ok) return null;
-
-    const contentType = res.headers.get("content-type") || "";
-    return contentType.startsWith("image/") ? url : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
@@ -261,7 +242,6 @@ export async function POST(req: Request) {
       servings: parseServings(parsed.servings),
       cuisine: cleanString(parsed.cuisine),
       difficulty: normalizeDifficulty(parsed.difficulty),
-      image_url: await validateImageUrl(parsed.image_url),
     };
 
     // Validate minimum requirements
@@ -305,8 +285,6 @@ export async function POST(req: Request) {
               prep_time: recipe.prep_time,
               cook_time: recipe.cook_time,
               servings: recipe.servings,
-              image_url: recipe.image_url,
-              is_public: false,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             },

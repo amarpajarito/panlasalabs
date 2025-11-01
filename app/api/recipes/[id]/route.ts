@@ -25,7 +25,7 @@ export async function GET(req: Request, { params }: { params: any }) {
     const { data, error } = await supabase
       .from("recipes")
       .select(
-        `id, user_id, title, description, ingredients, instructions, cuisine, difficulty, prep_time, cook_time, servings, image_url, is_public, created_at, updated_at`
+        `id, user_id, title, description, ingredients, instructions, cuisine, difficulty, prep_time, cook_time, servings, created_at, updated_at`
       )
       .eq("id", id)
       .maybeSingle();
@@ -41,25 +41,8 @@ export async function GET(req: Request, { params }: { params: any }) {
     if (!data)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Enforce access control: only return recipe if it's public or the
-    // requester is the owner.
-    if (data.is_public) {
-      return NextResponse.json({ recipe: data });
-    }
-
-    // Try to resolve session; if owner, return recipe, otherwise 403.
-    try {
-      const session = await getServerSession(authOptions as any);
-      const requesterId =
-        session && (session as any).user ? (session as any).user.id : null;
-      if (requesterId && data.user_id === requesterId) {
-        return NextResponse.json({ recipe: data });
-      }
-    } catch (e) {
-      console.warn("Could not resolve session for recipe access:", e);
-    }
-
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Return recipe - all recipes are accessible
+    return NextResponse.json({ recipe: data });
   } catch (err: any) {
     console.error("/api/recipes/[id] error:", err);
     return NextResponse.json(
