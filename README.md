@@ -168,6 +168,7 @@ CREATE TABLE public.recipes (
   description TEXT,
   ingredients JSONB DEFAULT '[]'::jsonb,
   instructions JSONB DEFAULT '[]'::jsonb,
+  cuisine TEXT,
   difficulty TEXT,
   prep_time INTEGER,
   cook_time INTEGER,
@@ -190,6 +191,7 @@ CREATE TABLE public.feedback (
 -- Create indexes for better performance
 CREATE INDEX idx_recipes_user_id ON public.recipes(user_id);
 CREATE INDEX idx_recipes_created_at ON public.recipes(created_at DESC);
+CREATE INDEX idx_recipes_cuisine ON public.recipes(cuisine);
 CREATE INDEX idx_feedback_user_id ON public.feedback(user_id);
 CREATE INDEX idx_users_email ON public.users(email);
 
