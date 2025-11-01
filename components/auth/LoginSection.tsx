@@ -46,18 +46,30 @@ export default function LoginSection() {
     setErrorMessage("");
 
     try {
+      // Attempt credentials sign-in with NextAuth
       const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         redirect: false,
       });
 
+      // Handle authentication errors
       if (result?.error) {
-        setErrorMessage(result.error);
+        // Display user-friendly error messages
+        if (result.error.includes("verify your email")) {
+          setErrorMessage(
+            "Please verify your email before signing in. Check your inbox for the verification link."
+          );
+        } else if (result.error.includes("Invalid")) {
+          setErrorMessage("Invalid email or password. Please try again.");
+        } else {
+          setErrorMessage(result.error);
+        }
         setIsLoading(false);
         return;
       }
 
+      // Successful sign-in - redirect to callback URL
       if (result?.ok) {
         router.push(callbackUrl);
         router.refresh();
@@ -69,6 +81,7 @@ export default function LoginSection() {
     }
   };
 
+  // Handle GitHub OAuth sign-in
   const handleGitHubLogin = async () => {
     setIsLoading(true);
     setErrorMessage("");

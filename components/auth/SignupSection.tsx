@@ -25,13 +25,16 @@ export default function SignupSection() {
   }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState(""); // Track success state
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear errors when user types
     if (errors[name as keyof typeof errors])
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     setErrorMessage("");
+    setSuccessMessage("");
   };
 
   const validateForm = () => {
@@ -59,76 +62,83 @@ export default function SignupSection() {
 
     setIsLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
     try {
       const supabase = createClient();
+      const fullName = `${formData.firstName} ${formData.lastName}`;
 
-      // Sign up with Supabase
+      // Register user with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
-            full_name: `${formData.firstName} ${formData.lastName}`,
+            name: fullName,
+            full_name: fullName,
             first_name: formData.firstName,
             last_name: formData.lastName,
           },
+          emailRedirectTo: `${window.location.origin}/login`,
         },
       });
 
+      // Handle registration errors
       if (error) {
-        setErrorMessage(error.message);
+        if (error.message.includes("already registered")) {
+          setErrorMessage(
+            "This email is already registered. Please sign in instead."
+          );
+        } else {
+          setErrorMessage(error.message);
+        }
         setIsLoading(false);
         return;
       }
 
       if (data.user) {
-        // Create user record via server endpoint (uses service role key).
+        // Create user record in public.users table via API
         try {
           const res = await fetch("/api/users", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              // id may not be a UUID for some providers; server will only
-              // use it if it's a valid UUID.
               id: data.user.id,
               email: formData.email,
-              name: `${formData.firstName} ${formData.lastName}`,
+              name: fullName,
               first_name: formData.firstName,
               last_name: formData.lastName,
               provider: "email",
             }),
           });
 
-          const json = await res.json();
           if (!res.ok) {
+            const json = await res.json();
             console.error("Database error:", json);
           }
         } catch (err) {
           console.error("Database error:", err);
         }
 
-        // Auto sign in after successful signup
-        const result = await signIn("credentials", {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
-        });
-
-        console.log("Credentials signIn result:", result);
-
-        if (result?.ok) {
-          router.push("/");
-          router.refresh();
-        } else {
-          // Show a helpful message when sign-in fails (e.g., email not
-          // confirmed or invalid credentials)
+        // Check if email confirmation is required
+        if (data.user.identities && data.user.identities.length === 0) {
           setErrorMessage(
-            (result as any)?.error ||
-              "Sign in failed. Please check your email and password."
+            "This email is already registered. Please sign in instead."
           );
           setIsLoading(false);
+          return;
         }
+
+        // Show success message for email confirmation
+        setSuccessMessage(
+          "Account created successfully! Please check your email to verify your account before signing in."
+        );
+        setIsLoading(false);
+
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          router.push("/login");
+        }, 3000);
       }
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -139,9 +149,11 @@ export default function SignupSection() {
     }
   };
 
+  // Handle GitHub OAuth signup
   const handleGitHubSignup = async () => {
     setIsLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
     try {
       await signIn("github", {
@@ -206,9 +218,17 @@ export default function SignupSection() {
           }
         >
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error message display */}
             {errorMessage && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {errorMessage}
+              </div>
+            )}
+
+            {/* Success message display */}
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                {successMessage}
               </div>
             )}
 

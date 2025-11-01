@@ -71,7 +71,7 @@ export default function ProfileForm() {
         avatarUrl = uploadResult.url;
       }
 
-      // Update profile
+      // Build update payload
       const payload: any = {
         name: name.trim() || undefined,
         first_name: firstName.trim() || undefined,
@@ -82,6 +82,7 @@ export default function ProfileForm() {
         payload.avatar_url = avatarUrl;
       }
 
+      // Update profile via API
       const result = await updateProfile(payload);
 
       if (!result.success) {
@@ -89,21 +90,26 @@ export default function ProfileForm() {
         return;
       }
 
-      // Success - show message and wait for event propagation
+      // Success - show message and redirect
       setSuccess(true);
       setFile(null);
       setError(null);
 
-      // Wait longer for session to update before redirecting
+      // Wait for session update before redirecting
       setTimeout(() => {
         router.back();
-      }, 2000); // Increased from 1500ms to 2000ms
+      }, 2000);
     } catch (err: any) {
       console.error("Profile update error:", err);
       setError(err.message ?? "An unexpected error occurred");
     } finally {
       setSaving(false);
     }
+  };
+
+  // Handle cancel button - discard changes
+  const handleCancel = () => {
+    router.back();
   };
 
   const handleCreateBucket = async () => {
@@ -273,7 +279,16 @@ export default function ProfileForm() {
           </div>
         )}
 
-        <div className="flex justify-end">
+        {/* Action buttons */}
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={saving}
+            className="px-6 py-2.5 border-2 border-[#6D2323]/20 text-[#6D2323] rounded-lg hover:bg-[#6D2323]/5 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
           <SaveButton
             saving={saving}
             disabled={!hasChanges}
