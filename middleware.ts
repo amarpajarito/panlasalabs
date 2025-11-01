@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+/**
+ * Middleware to handle authentication and route protection
+ * Runs on every request matching the config.matcher pattern
+ */
 export async function middleware(request: NextRequest) {
+  // Extract JWT token from the request
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
@@ -10,20 +15,28 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Public paths that don't require authentication
-  const publicPaths = ["/", "/about", "/contact", "/login", "/signup"];
+  // Define public routes (accessible without authentication)
+  const publicPaths = [
+    "/",
+    "/about",
+    "/contact",
+    "/login",
+    "/signup",
+    "/allrecipes",
+    "/recipe",
+  ];
   const isPublicPath = publicPaths.some((path) => pathname === path);
 
-  // Auth paths
+  // Check if user is accessing authentication pages
   const isAuthPath =
     pathname.startsWith("/login") || pathname.startsWith("/signup");
 
-  // If user is logged in and tries to access auth pages, redirect to home
+  // Redirect authenticated users away from auth pages
   if (token && isAuthPath) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Allow access to public paths and API routes
+  // Allow access to public paths, API routes, and Next.js internal routes
   if (
     isPublicPath ||
     pathname.startsWith("/api") ||
@@ -32,13 +45,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protected paths - require authentication
-  // Add your protected routes here
-  const protectedPaths = ["/dashboard", "/profile", "/generate"];
+  // Define protected routes (require authentication)
+  const protectedPaths = ["/profile"];
   const isProtectedPath = protectedPaths.some((path) =>
     pathname.startsWith(path)
   );
 
+  // Redirect unauthenticated users to login with callback URL
   if (isProtectedPath && !token) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
@@ -48,6 +61,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Configure which routes the middleware should run on
 export const config = {
   matcher: [
     /*
@@ -55,7 +69,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
+     * - public folder files
      */
     "/((?!_next/static|_next/image|favicon.ico|images|.*\\.svg$).*)",
   ],
