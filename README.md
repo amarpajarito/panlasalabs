@@ -55,46 +55,6 @@ PanlasaLabs is a full-stack web application that enables users to generate custo
 | AI Service         | Google Gemini API     | 1.27.0  |
 | Icons              | React Icons           | 5.5.0   |
 
-### Application Architecture
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                          Client Layer                             │
-│        Next.js 15 App Router + React 19 + Tailwind CSS            │
-└─────────────────────────────┬─────────────────────────────────────┘
-                              │
-                              │
-┌─────────────────────────────▼─────────────────────────────────────┐
-│                       Middleware Layer                            │
-│                                                                   │
-│         • Authentication (NextAuth.js)                            │
-│         • Route Protection                                        │
-│         • Session Management                                      │
-│                                                                   │
-└─────────────────────────────┬─────────────────────────────────────┘
-                              │
-                              │
-┌─────────────────────────────▼─────────────────────────────────────┐
-│                         API Layer                                 │
-│                                                                   │
-│    • /api/auth/*      (NextAuth endpoints)                        │
-│    • /api/ai/*        (Gemini AI integration)                     │
-│    • /api/recipes/*   (Recipe CRUD)                               │
-│    • /api/users/*     (User management)                           │
-│    • /api/feedback/*  (Feedback submission)                       │
-│                                                                   │
-└──────────────────┬───────────────────────┬────────────────────────┘
-                   │                       │
-                   │                       │
-         ┌─────────▼─────────┐   ┌─────────▼──────────┐
-         │ Supabase Services │   │ Google Gemini API  │
-         │                   │   │                    │
-         │ • PostgreSQL DB   │   │ • Recipe Gen       │
-         │ • Storage         │   │ • AI Conversations │
-         │ • Auth            │   │                    │
-         └───────────────────┘   └────────────────────┘
-```
-
 ### Authentication Flow
 
 1. **Credential-based Authentication**: User email/password stored in Supabase Auth
@@ -456,9 +416,6 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-from-supabase
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-from-supabase
 
-# Storage Configuration
-NEXT_PUBLIC_AVATAR_BUCKET=avatars
-
 # NextAuth Configuration (Required for authentication)
 GITHUB_CLIENT_ID=your-github-oauth-client-id
 GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
@@ -467,7 +424,7 @@ NEXTAUTH_URL=http://localhost:3000
 
 # Google Gemini AI (Required for recipe generation)
 GEMINI_API_KEY=your-gemini-api-key-from-google-ai-studio
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 **Environment Variable Breakdown:**
@@ -478,7 +435,6 @@ GEMINI_MODEL=gemini-1.5-flash
 | `NEXT_PUBLIC_SUPABASE_URL`      | Same URL, client-accessible    | Client-side code              |
 | `SUPABASE_SERVICE_ROLE_KEY`     | Admin key, bypasses RLS        | Server-side only (API routes) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public key, respects RLS       | Client-side operations        |
-| `NEXT_PUBLIC_AVATAR_BUCKET`     | Storage bucket name            | Avatar uploads                |
 | `GITHUB_CLIENT_ID`              | GitHub OAuth app ID            | OAuth authentication          |
 | `GITHUB_CLIENT_SECRET`          | GitHub OAuth secret            | OAuth authentication          |
 | `NEXTAUTH_SECRET`               | JWT signing key (min 32 chars) | Session encryption            |
@@ -914,6 +870,6 @@ MIT License. See LICENSE file for details.
 
 ## Team
 
-- **Amar Pajarito** - Lead/Full-Stack Developer
+- **Amar Pajarito** - Lead Developer
 - **Jae Gatmaitan** - UI/UX Designer
 - **Aaron San Pedro** - UI/UX Designer
