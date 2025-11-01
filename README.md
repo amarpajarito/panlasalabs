@@ -396,12 +396,12 @@ ORDER BY event_object_table;
 
 **Important Notes:**
 
-- ✅ API routes use `SUPABASE_SERVICE_ROLE_KEY` which bypasses RLS for admin operations
-- ✅ Client-side operations use `NEXT_PUBLIC_SUPABASE_ANON_KEY` which respects RLS policies
-- ✅ RLS policies ensure users can only modify their own data
-- ✅ Avatar uploads use server-side API route (`/api/storage/upload-avatar`) with service role key
-- ✅ Storage policies allow public viewing but restrict uploads to authenticated requests via API
-- ✅ Profile changes (name, avatar) persist across OAuth login sessions
+- API routes use `SUPABASE_SERVICE_ROLE_KEY` which bypasses RLS for admin operations
+- Client-side operations use `NEXT_PUBLIC_SUPABASE_ANON_KEY` which respects RLS policies
+- RLS policies ensure users can only modify their own data
+- Avatar uploads use server-side API route (`/api/storage/upload-avatar`) with service role key
+- Storage policies allow public viewing but restrict uploads to authenticated requests via API
+- Profile changes (name, avatar) persist across OAuth login sessions
 
 ## Configuration
 
@@ -442,7 +442,7 @@ GEMINI_MODEL=gemini-2.5-flash
 | `GEMINI_API_KEY`                | Google AI API key              | Recipe generation             |
 | `GEMINI_MODEL`                  | Gemini model version           | AI model selection            |
 
-**⚠️ Security Notes:**
+**Security Notes:**
 
 - `SUPABASE_SERVICE_ROLE_KEY` has **full database access** - keep it secret, never expose to client
 - `NEXTAUTH_SECRET` should be a **random 32+ character string** - generate with OpenSSL
@@ -523,11 +523,11 @@ Application will start on `http://localhost:3000` (or `http://localhost:3001` if
 
 **First Run Checklist:**
 
-- ✅ Database tables created (run SQL from Step 3)
-- ✅ `.env.local` file created with all required variables
-- ✅ GitHub OAuth app configured with correct callback URL
-- ✅ Supabase service role key added (required for API routes)
-- ✅ Gemini API key is valid and has quota
+- Database tables created (run SQL from Step 3)
+- `.env.local` file created with all required variables
+- GitHub OAuth app configured with correct callback URL
+- Supabase service role key added (required for API routes)
+- Gemini API key is valid and has quota
 
 **Testing the Setup:**
 
@@ -669,13 +669,13 @@ GEMINI_API_KEY=your-gemini-key
 
 **Production Checklist:**
 
-- ✅ Update GitHub OAuth app with production callback URL: `https://yourdomain.com/api/auth/callback/github`
-- ✅ Enable CORS in Supabase for your production domain
-- ✅ Set all environment variables in Vercel dashboard
-- ✅ Ensure RLS policies are properly configured
-- ✅ Test authentication flow in production
-- ✅ Verify avatar uploads work (server-side route)
-- ✅ Check Gemini API quota and rate limits
+- Update GitHub OAuth app with production callback URL: `https://yourdomain.com/api/auth/callback/github`
+- Enable CORS in Supabase for your production domain
+- Set all environment variables in Vercel dashboard
+- Ensure RLS policies are properly configured
+- Test authentication flow in production
+- Verify avatar uploads work (server-side route)
+- Check Gemini API quota and rate limits
 
 ### Manual Deployment
 
