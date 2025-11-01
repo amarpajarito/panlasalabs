@@ -1,5 +1,3 @@
-import { createClient as createBrowserClient } from "@/lib/supabase/client";
-
 const AVATAR_BUCKET = process.env.NEXT_PUBLIC_AVATAR_BUCKET ?? "avatars";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -16,6 +14,14 @@ export async function uploadAvatar(
   userId: string
 ): Promise<UploadResult> {
   try {
+    // Validate user ID is provided (indicates authenticated session)
+    if (!userId) {
+      return {
+        success: false,
+        error: "You must be logged in to upload an avatar",
+      };
+    }
+
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return {
@@ -32,27 +38,22 @@ export async function uploadAvatar(
       };
     }
 
-    const supabase = createBrowserClient();
+    // Upload via API route (uses service role to bypass RLS)
+    const formData = new FormData();
+    formData.append("file", file);
 
-    // Create unique filename with timestamp
-    const fileExt = file.name.split(".").pop();
-    const filename = `${userId}/${Date.now()}.${fileExt}`;
+    const response = await fetch("/api/storage/upload-avatar", {
+      method: "POST",
+      body: formData,
+    });
 
-    // Upload file
-    const { error: uploadError } = await supabase.storage
-      .from(AVATAR_BUCKET)
-      .upload(filename, file, {
-        upsert: true,
-        contentType: file.type,
-      });
+    const result = await response.json();
 
-    if (uploadError) {
-      const errorMsg = String(uploadError.message ?? uploadError);
-
+    if (!response.ok) {
       // Check if bucket doesn't exist
       if (
-        errorMsg.toLowerCase().includes("bucket not found") ||
-        errorMsg.toLowerCase().includes("not found")
+        result.error?.toLowerCase().includes("bucket not found") ||
+        result.error?.toLowerCase().includes("not found")
       ) {
         return {
           success: false,
@@ -63,16 +64,11 @@ export async function uploadAvatar(
 
       return {
         success: false,
-        error: errorMsg,
+        error: result.error || "Failed to upload avatar",
       };
     }
 
-    // Get public URL
-    const { data } = supabase.storage
-      .from(AVATAR_BUCKET)
-      .getPublicUrl(filename);
-
-    if (!data?.publicUrl) {
+    if (!result.url) {
       return {
         success: false,
         error: "Failed to get public URL for uploaded image",
@@ -81,7 +77,7 @@ export async function uploadAvatar(
 
     return {
       success: true,
-      url: data.publicUrl,
+      url: result.url,
     };
   } catch (err: any) {
     console.error("Avatar upload error:", err);
